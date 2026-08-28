@@ -1,0 +1,118 @@
+{
+  "theme": "light",
+  "typography": {
+    "strategy": "Soft Utility (Dashboard/Apps) adapted for fast data comprehension",
+    "headings": {
+      "font_family": "Manrope",
+      "weights": ["600", "800"],
+      "styling": "tracking-tight, never center-aligned by default. H1 cap at text-4xl for dashboard utility.",
+      "forbidden": ["Inter", "Roboto", "Open Sans", "Lato", "Space Grotesk"]
+    },
+    "body": {
+      "font_family": "IBM Plex Sans",
+      "weights": ["400", "500", "600"],
+      "styling": "Tabular numerals for all tables and inventory metrics (tabular-nums)."
+    },
+    "hierarchy": {
+      "h1": "text-3xl sm:text-4xl font-extrabold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl font-semibold",
+      "body": "text-base",
+      "small": "text-sm text-muted-foreground uppercase tracking-widest"
+    }
+  },
+  "colors": {
+    "archetype": "ARCHETYPE 4: SWISS & HIGH-CONTRAST (Utility & Clarity)",
+    "primary": {
+      "name": "Burnt Apricot / Chef's Orange",
+      "hex": "#E05D3A",
+      "usage": "Primary CTAs, active states, key highlights. Limit usage to avoid visual fatigue."
+    },
+    "background": {
+      "main": "#FAFAFA",
+      "card": "#FFFFFF",
+      "rule": "White/light background prioritized. NEVER use complete transparent background in headers or overlays."
+    },
+    "status": {
+      "stock_high": {
+        "text": "#166534",
+        "bg": "#DCFCE7",
+        "border": "#22C55E",
+        "name": "Green"
+      },
+      "stock_warning": {
+        "text": "#854D0E",
+        "bg": "#FEF9C3",
+        "border": "#EAB308",
+        "name": "Yellow"
+      },
+      "stock_low": {
+        "text": "#991B1B",
+        "bg": "#FEE2E2",
+        "border": "#EF4444",
+        "name": "Red"
+      }
+    },
+    "neutrals": {
+      "text_main": "#09090B",
+      "text_muted": "#52525B",
+      "border": "#E4E4E7"
+    },
+    "forbidden": ["#1B93A4", "teal green", "teal blue", "generic full-screen gradients"]
+  },
+  "layouts": {
+    "strategy": "Functional beauty, dense but touch-friendly for tablets.",
+    "spacing": "Generous. p-6 to p-8 inside cards. Large touch targets (min h-12) for all buttons and inputs to accommodate kitchen staff on tablets.",
+    "navigation": "Role-based sidebar navigation. Fixed left side. Must be collapsible but always accessible. Grouped sections with clean icons.",
+    "cards": "Flat, rectangular, 1px border (border-border), no massive drop shadows. Use subtle rounded corners (rounded-xl).",
+    "tables": "Data-dense but readable. Use Shadcn Table. MUST have horizontal scrolling for mobile/tablet. Sticky headers. Use alternating row colors or distinct border-b for separation.",
+    "alignment": "Left-align paragraphs, labels, dense content. Right-align numeric columns in tables (variance, stock, cost)."
+  },
+  "grids": {
+    "dashboard_mode": "High Density Grid (Mode B)",
+    "kpi_cards": "grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 (Today's Sales, MTD Sales, Inv Value, Food Cost %, Wastage, Variance).",
+    "charts": "col-span-full lg:col-span-3 (Sales Trend vs Food Cost).",
+    "rules": ["Every pixel utilized", "Grid items must be direct children", "Use align-self: stretch to match heights"]
+  },
+  "component_instructions": {
+    "buttons": "Large touch targets. min-h-[3rem] (h-12). Pill-shaped or soft-rounded (rounded-lg).",
+    "forms": "Use Shadcn Form, Input, Select. Stacked labels (above inputs). Left-aligned. Clear validation states.",
+    "charts": "Use Recharts (via Shadcn). Keep them simple: Line for trends, Bar for brand-wise sales. Accessible color palettes.",
+    "workflows": "Multi-step workflows (Procurement -> Approval) should use a clear Wizard/Stepper UI at the top.",
+    "icons": "Use `lucide-react`. Clean, stroke-based. No emojis for icons.",
+    "testing": "All interactive elements MUST include a `data-testid` attribute (e.g., data-testid='post-sales-btn')."
+  },
+  "motion": {
+    "strategy": "Minimal & Functional. NO unnecessary bouncy animations.",
+    "allowed": ["Hover state color transitions (150ms ease)", "Focus rings (ring-2 ring-primary ring-offset-2)", "Smooth layout transitions for expanding rows"],
+    "forbidden": ["Parallax", "Heavy enter animations", "Infinite loops (unless loading spinner)"]
+  },
+  "accessibility": {
+    "contrast": "Ensure 4.5:1 for standard text. Never gray-on-gray.",
+    "focus": "Clear focus states on all inputs/buttons for keyboard navigation.",
+    "motion": "Respect prefers-reduced-motion."
+  },
+  "media": {
+    "image_urls": {
+      "kitchen_chef_placeholder": {
+        "url": "https://images.unsplash.com/photo-1622021142947-da7dedc7c39a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwxfHxraXRjaGVuJTIwY2hlZnxlbnwwfHx8fDE3ODc5MzE1NDd8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Chef chopping vegetables, good for recipe or R&D trial placeholder headers."
+      },
+      "kitchen_prep": {
+        "url": "https://images.unsplash.com/photo-1577219492769-b63a779fac28?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwzfHxraXRjaGVuJTIwY2hlZnxlbnwwfHx8fDE3ODc5MzE1NDd8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Chef preparing foods. Suitable for dashboard hero or store inventory empty states."
+      }
+    }
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Make this dashboard feel like a high-end, tactile kitchen tool.",
+    "NEVER use dark colors as gradients. Stick to solid, flat backgrounds.",
+    "DO NOT apply universal transition (e.g., transition: all). Target specific properties like background-color or transform.",
+    "DO NOT center align the app container (.App { text-align: center; } is FORBIDDEN).",
+    "Prioritize using pre-existing Shadcn components. Customize them for large touch targets (tablets in kitchens).",
+    "NEVER use AI assistant emojis 🤖🧠 etc for icons. Use lucide-react.",
+    "Data tables MUST be highly legible. Use tabular-nums for numeric columns.",
+    "Ensure stock status colors (Green, Yellow, Red) have sufficient contrast. Use the exact background/text pairings provided in the colors section.",
+    "Use `sonner` for toast notifications (e.g., 'Invoice Uploaded', 'Sales Posted')."
+  ]
+}

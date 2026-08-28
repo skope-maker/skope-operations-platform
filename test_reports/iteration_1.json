@@ -1,0 +1,49 @@
+{
+  "summary": "Full backend + frontend E2E test of the multi-brand kitchen sales/recipe/inventory app. Backend: 79/79 pytest tests pass (auth+RBAC, masters CRUD, procurement receipt->approval->stock, intent->issue->production yield, transfer/adjustment/wastage/R&D, recipes versioning, sales draft->post->shortage, daily closing/variance/lock/reopen, 9 reports, dashboard, users admin). Frontend: verified login (valid/invalid), logout, dashboard KPIs+charts+alerts from DB, role-based sidebar for admin/chef/keeper/manager/management, Masters CRUD (brand create+edit, supplier, item, location), settings company name -> sidebar, audit logs, user create, procurement (mandatory invoice validation, upload PNG, pending list, approval dialog with invoice view, approve full -> stock), inventory 6 tabs + ledger filters + adjustment + transfer, kitchen intent -> full issue -> production batch (8KG from 10KG raw), daily closing sheet with expected/physical/variance -> approve & lock (locked badge), sales draft (sold/cancelled/complimentary) + duplicate block + theoretical table + post + insufficient-stock shortage dialog, wastage, R&D trial, recipes page, all 8 reports with CSV export button, mobile hamburger menu. Only one real functional defect found (silent no-op on override for non-privileged roles) plus 3 minor issues.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/settings", "issue": "Accepts empty/blank company_name (no validation) -> sidebar branding renders blank. Add min-length validation."},
+      {"endpoint": "POST /api/closing/reopen", "issue": "Reopening a locked day reverts status to 'submitted' but keeps approved_by populated, so Closing History shows 'Approved By: Manoj StoreManager' next to a Submitted badge."},
+      {"endpoint": "POST /api/auth/login", "issue": "Playbook deviation: no httpOnly cookie is set on login (token returned in JSON for localStorage/Bearer, matching documented design) and CORS uses allow_origins=['*'] with allow_credentials=False. If cookie auth is expected, set httpOnly cookie + explicit origins. Also db.login_attempts grows unbounded (no TTL index)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Sales.jsx shortage dialog", "issue": "Override UI is shown to roles that cannot override. Chef sees 'Override & Post Anyway' + reason field; clicking it silently does nothing (backend returns 200 {ok:false, needs_override:false} and postSale() just re-sets shortages and returns without any toast). No feedback at all, user can click forever. Hide/disable override button when needs_override===false and show toast.error('Only Admin/Store Manager can override').", "selector": "[data-testid=\"override-post-btn\"]", "priority": "HIGH"},
+      {"component": "Layout.jsx top bar", "issue": "Sonner toasts render over the top-right user name/logout block, visually clipping 'Chef Chandru / Chef' while a toast is visible. Consider offsetting toaster below the header.", "selector": "[data-testid=\"current-user-name\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Sales post with insufficient stock (chef)", "issue": "Backend 200 {ok:false, needs_override:false} response is swallowed by postSale(); no error state surfaced in UI", "affected_selectors": ["[data-testid=\"override-post-btn\"]", "[data-testid=\"shortage-dialog\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Administration > Settings", "issues": ["Company name input renders empty until GET /settings resolves (no skeleton/loading state); a fast user (or automation) can save over the blank value and wipe the company name"]},
+      {"screen": "Kitchen > Daily Closing history", "issues": ["'Approved By' column populated for rows whose status is Submitted (post-reopen), confusing status display"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results_iter1.xml"
+  ],
+  "action_items": [
+    "Sales.jsx: hide/disable override button + reason input when res.data.needs_override === false, and always show a toast when ok===false (currently a silent dead-click for chef/other roles)",
+    "Backend: validate non-empty company_name in PUT /api/settings",
+    "Backend: clear approved_by/approved_at when a day is reopened so Closing History status is consistent",
+    "Optional: add loading/disabled state to Settings form until GET /settings resolves; add TTL index on login_attempts"
+  ],
+  "critical_code_review_comments": [
+    "routers_sales.post: returning HTTP 200 with {ok:false} for a business failure forces every client to branch on the body; frontend already mishandles the needs_override=false branch. Prefer 409 with structured detail or make the UI handle all three outcomes explicitly.",
+    "Kitchen.jsx issueFull uses `l.qty - (l.issued || 0)` but the intent line payload exposes issued_base (not `issued`), so partial-then-full issue would resend the full requested qty; backend balance check catches it with a 400 but the UI message is confusing.",
+    "AuthContext refetches /settings only when user changes; Admin.saveSettings pushes response into context which works, but Admin.load() can overwrite an in-progress edit of the settings form (race observed in testing).",
+    "server.py CORS: allow_origins=['*'] is wide open; restrict to the deployed frontend origin."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (79/79 pytest)", "frontend": "~95% (all flows pass; 1 functional UI defect: silent override no-op)"},
+  "seed_data_creation": "UI-created data on the shared preview DB: brand 'UITest Brand Edited 34726' (code UB34525), supplier 'UITest Supplier 34726', item UI34726, location UL34726, users uitest34525@example.com / uitest34726@example.com (chef role), receipts PRC-00010/PRC-00011 (approved, +10KG raw chicken each), stock adjustment +20KG raw chicken to Base Kitchen, transfers (store->R&D 1KG, base->normal 5KG marinated), BATCH-00009 (8KG marinated), SALE-00010 (2026-09-05, posted), SALE-00011 (2026-09-06, draft with shortages), closing 2026-09-07 Base Kitchen approved+locked, wastage WST-00008, R&D trial 'UI Trial Dish'. Company name was temporarily blanked during a race and restored to 'Chennai Kitchen Co.'.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin chennakeshavaediga@gmail.com/admin123; chef@kitchen.com, manager@kitchen.com, keeper@kitchen.com, procurement@kitchen.com, management@kitchen.com all demo123 (all verified working)",
+  "context_for_next_testing_agent": "Backend suite is at /app/backend/tests/backend_test.py (pytest.ini forces -n 2 --dist loadscope; do not edit). It self-seeds future dates to avoid day locks. Frontend selectors: masters tabs are PLURAL (tab-m-brands/items/categories/units/suppliers/kitchens); masters row edit id is edit-brand-<CODE>/edit-item-<CODE>; report CSV button is report-table-export-btn. Kitchen intent unit auto-switches to the item's consumption unit (GM) when an item is selected - qty 10 means 10 GM, not 10 KG. Today's date in this environment is 2026-08-28 and Normal Kitchen + Base Kitchen(2026-09-07) days are locked; use other dates for new sales/closings. Base Kitchen raw material stock gets drained by repeated production tests - post an inventory adjustment first. Remaining untested: partial issue via issue-qty inputs, partial procurement approval + reject buttons, recipe create/edit dialog (Recipes page New Recipe/Versions), CSV file download contents, admin reopen of a locked day from the UI.",
+  "rca_of_the_issue": "Silent override no-op: POST /api/sales/{id}/post returns HTTP 200 with {ok:false, shortages:[...], needs_override:<role can override>}. Sales.jsx postSale() checks `if (res.data.needs_override !== undefined && !res.data.ok)` and simply re-renders the shortage dialog, so for a chef (needs_override:false) the second click produces the identical response and no user-visible change or message. The dialog also renders the override button/reason for every role even though the backend only honours override for admin/store_manager (routers_sales.py:146-153). Reproduce: login chef@kitchen.com -> Sales -> Drafts -> Post SALE-00011 -> shortage dialog -> enter reason -> click Override & Post Anyway -> nothing happens (no toast, no network error)."
+}
