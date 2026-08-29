@@ -46,7 +46,7 @@ export default function Dashboard() {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => inr(v)} />
-              <Line type="monotone" dataKey="sales" stroke="#E05D3A" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="sales" stroke="#0284C7" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -58,7 +58,7 @@ export default function Dashboard() {
               <XAxis dataKey="brand" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v, name) => (name === 'sales' ? inr(v) : `${v}%`)} />
-              <Bar dataKey="sales" fill="#E05D3A" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="sales" fill="#35A9E1" radius={[6, 6, 0, 0]} />
               <Bar dataKey="food_cost_pct" fill="#09090B" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, ShoppingCart, ShoppingBag, Boxes, ChefHat, BookOpen,
-  FlaskConical, Trash2, Database, BarChart3, Settings, LogOut, Menu, X, UtensilsCrossed,
+  FlaskConical, Trash2, Database, BarChart3, Settings, LogOut, Menu, X,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -50,8 +50,8 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r bg-card lg:flex">
-        <div className="flex items-center gap-2 border-b px-5 py-5">
-          <UtensilsCrossed className="h-7 w-7 text-primary" />
+        <div className="flex items-center gap-2 border-b px-4 py-4">
+          <img src="/skope-logo.png" alt="SKOPE Kitchens" className="h-9 w-auto" data-testid="sidebar-logo" />
           <div>
             <div className="font-extrabold leading-tight tracking-tight" data-testid="company-name">{settings.company_name}</div>
             <div className="text-xs text-muted-foreground">Kitchen Inventory Suite</div>
