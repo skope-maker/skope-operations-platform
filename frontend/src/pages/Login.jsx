@@ -56,6 +56,7 @@ export default function Login() {
           </Button>
         </form>
         <div className="mt-6 rounded-lg bg-secondary p-4 text-xs text-muted-foreground">
+          <p className="font-semibold text-foreground mb-1">Admin: chennakeshavaediga@gmail.com / admin123</p>
           <p className="font-semibold text-foreground mb-1">Demo accounts (password: demo123)</p>
           <p>chef@kitchen.com · manager@kitchen.com · keeper@kitchen.com</p>
           <p>procurement@kitchen.com · management@kitchen.com</p>

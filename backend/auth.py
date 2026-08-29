@@ -76,7 +76,7 @@ class LoginIn(BaseModel):
 @router.post('/login')
 async def login(body: LoginIn, request: Request):
     email = body.email.strip().lower()
-    identifier = f"{request.client.host}:{email}" if request.client else email
+    identifier = email
     cutoff = (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat()
     await db.login_attempts.delete_many({'last': {'$lt': cutoff}})
     attempt = await db.login_attempts.find_one({'identifier': identifier})
