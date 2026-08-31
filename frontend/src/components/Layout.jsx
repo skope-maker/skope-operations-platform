@@ -11,7 +11,7 @@ const SECTIONS = [
   { label: 'Sales', icon: ShoppingCart, path: '/sales', roles: ['admin', 'chef', 'store_manager', 'management'] },
   { label: 'Procurement', icon: ShoppingBag, path: '/procurement', roles: ['admin', 'procurement_manager', 'store_keeper', 'management'] },
   { label: 'Inventory', icon: Boxes, path: '/inventory', roles: ['admin', 'store_keeper', 'store_manager', 'chef', 'management'] },
-  { label: 'Kitchen', icon: ChefHat, path: '/kitchen', roles: ['admin', 'chef', 'store_manager'] },
+  { label: 'Kitchen', icon: ChefHat, path: '/kitchen', roles: ['admin', 'procurement_manager', 'store_keeper', 'store_manager', 'chef', 'management'] },
   { label: 'Recipes', icon: BookOpen, path: '/recipes', roles: ['admin', 'chef', 'management'] },
   { label: 'R&D', icon: FlaskConical, path: '/rd', roles: ['admin', 'chef', 'management'] },
   { label: 'Wastage', icon: Trash2, path: '/wastage', roles: ['admin', 'chef', 'store_manager', 'management'] },

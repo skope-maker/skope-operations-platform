@@ -87,7 +87,7 @@ class IssueIn(BaseModel):
 
 
 @router.post('/intents/{intent_id}/issue')
-async def issue_intent(intent_id: str, body: IssueIn, user=Depends(require_roles('admin', 'store_manager'))):
+async def issue_intent(intent_id: str, body: IssueIn, user=Depends(require_roles('admin', 'store_manager', 'store_keeper', 'procurement_manager', 'management'))):
     intent = await db.kitchen_intents.find_one({'id': intent_id})
     if not intent:
         raise HTTPException(404, 'Intent not found')
@@ -130,7 +130,7 @@ async def issue_intent(intent_id: str, body: IssueIn, user=Depends(require_roles
 
 
 @router.post('/intents/{intent_id}/reject')
-async def reject_intent(intent_id: str, user=Depends(require_roles('admin', 'store_manager'))):
+async def reject_intent(intent_id: str, user=Depends(require_roles('admin', 'store_manager', 'store_keeper', 'procurement_manager', 'management'))):
     await db.kitchen_intents.update_one({'id': intent_id}, {'$set': {'status': 'rejected'}})
     await audit(user, 'Rejected kitchen intent', intent_id)
     return {'ok': True}
