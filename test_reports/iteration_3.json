@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 3 focused verification of the 'invoice image not visible in approval dialog' bug fix plus listed regressions. Backend: 10/10 pytest passed (attachment excluded from list endpoint, full data:image returned by detail endpoint for PRC-00013/PRC-00014, 404 for unknown id, mandatory-attachment rejection for keeper create, approval->ledger/stock posting, auth hardening: bcrypt $2b$ hash, CORS preflight, 401 on /auth/me without token, valid login unaffected by failed attempts, lockout implemented in auth.py at 5 fails). Frontend: BUG FIXED — procurement@kitchen.com sees inline invoice image in Review dialog for PRC-00014 (img data-testid='invoice-preview', natural 848x1236, rendered 219x320, complete=true); 'View Invoice Attachment' now opens a blob: URL in a new tab successfully (no silent block); PRC-00013 (LEMON.jpg, partial) also renders inline from Purchase History View; keeper form blocks submit without attachment ('Invoice photo/PDF is mandatory' toast); new receipt PRC-00015 created with real upload appeared in Pending Approval with working inline preview and Approve Full succeeded ('Receipt approved — approved quantities entered store stock'), verified via ledger/stock API.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Procurement approval dialog", "issues": ["Invoice preview image is left-aligned inside a full-width bordered box, leaving a large empty area to the right (looks unbalanced, esp. for portrait/small images) — consider centering or constraining the container width", "React console warning: 'Missing Description or aria-describedby for DialogContent' on approval/view dialog (a11y nit)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_invoice_attachment.py",
+    "/app/backend/tests/test_approval_stock.py",
+    "/app/backend/tests/test_auth_hardening.py",
+    "/app/test_reports/pytest/iteration3_results.xml"
+  ],
+  "action_items": [
+    "Optional polish only: center/limit width of the invoice preview container in the approval dialog",
+    "Optional: add DialogDescription/aria-describedby to Procurement dialog to clear React a11y warning",
+    "Optional cleanup: QA-created receipt PRC-00015 (invoice TEST_QA_IMG_001, Raw Chicken 5 KG, approved) exists in Purchase History and posted stock to the store"
+  ],
+  "critical_code_review_comments": [
+    "openDataUrl() in /app/frontend/src/lib/api.js never revokes the created object URL (minor memory leak per click) and will throw on a malformed/non-base64 data URL — wrap in try/catch and setTimeout(() => URL.revokeObjectURL(url), 60000).",
+    "POST /procurement/receipts response and approve response strip 'attachment', which is correct; keep list endpoint projection {'attachment': 0} to avoid multi-MB list payloads as receipt volume grows.",
+    "Base64 attachments stored inline in MongoDB documents (130-230KB each) will bloat the receipts collection; consider GridFS or object storage with a URL reference for future scale."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_invoice_attachment.py",
+    "/app/backend/tests/test_approval_stock.py",
+    "/app/backend/tests/test_auth_hardening.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Created receipt PRC-00015 (invoice TEST_QA_IMG_001, supplier Fresh Farms Suppliers, Raw Chicken 5 KG, 100x100 PNG attachment) via keeper UI and approved it as procurement manager; stock/ledger updated accordingly.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "procurement@kitchen.com/demo123, keeper@kitchen.com/demo123 (from /app/memory/test_credentials.md)",
+  "context_for_next_testing_agent": "Invoice image visibility bug is confirmed fixed end-to-end. PRC-00014 remains pending (untouched) with real image Topical_under200kb.jpg; PRC-00013 is partial with LEMON.jpg; PRC-00015 is a QA-created approved receipt. Reusable focused suites live at /app/backend/tests/test_invoice_attachment.py, test_approval_stock.py, test_auth_hardening.py. Iteration 1's 79-test suite (backend_test.py) was not re-run.",
+  "rca_of_the_issue": "Original defect: approval dialog used window.open(base64 data: URL, '_blank'), which Chrome blocks for top-level navigation, so the click did nothing and no preview existed. Fix verified: inline <img src=dataUrl data-testid='invoice-preview'> in the dialog for data:image attachments, plus openDataUrl() converting base64 to a Blob and opening an object (blob:) URL — new tab opened successfully during testing."
+}

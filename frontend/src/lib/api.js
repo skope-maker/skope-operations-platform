@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -50,4 +51,18 @@ export function fileToDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+export function openDataUrl(dataUrl) {
+  try {
+    const [meta, b64] = dataUrl.split(',');
+    const mime = (meta.match(/data:(.*?);/) || [])[1] || 'application/octet-stream';
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch {
+    toast.error('Unable to open attachment');
+  }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, errMsg, inr, fileToDataUrl } from '../lib/api';
+import { api, errMsg, inr, fileToDataUrl, openDataUrl } from '../lib/api';
 import { DataTable, PageHeader, StatusBadge } from '../components/DataTable';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -196,11 +196,18 @@ export default function Procurement() {
           {approval && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm" onClick={() => window.open(approval.attachment, '_blank')} data-testid="view-invoice-btn">
-                  <FileText className="mr-2 h-4 w-4" /> View Invoice Attachment
+                <Button variant="outline" size="sm" onClick={() => openDataUrl(approval.attachment)} data-testid="view-invoice-btn">
+                  <FileText className="mr-2 h-4 w-4" /> View Invoice Attachment ({approval.attachment_name || 'file'})
                 </Button>
                 <StatusBadge status={approval.status} />
               </div>
+              {approval.attachment?.startsWith('data:image') ? (
+                <div className="flex justify-center rounded-lg border bg-secondary/30 p-2" data-testid="invoice-preview-wrap">
+                  <img src={approval.attachment} alt="Invoice attachment" className="max-h-80 w-auto rounded" data-testid="invoice-preview" />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">PDF invoice attached ({approval.attachment_name}) — click "View Invoice Attachment" to open it.</p>
+              )}
               <table className="w-full text-sm" data-testid="approval-lines-table">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase tracking-widest text-muted-foreground">
