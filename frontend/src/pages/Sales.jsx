@@ -30,7 +30,7 @@ export default function Sales() {
     api.get('/sales').then((r) => setSales(r.data)).catch((e) => toast.error(errMsg(e)));
     api.get('/recipes').then((r) => setRecipes(r.data.filter((x) => x.active))).catch(() => {});
     api.get('/brands').then((r) => setBrands(r.data.filter((b) => b.status === 'active'))).catch(() => {});
-    api.get('/kitchens').then((r) => setKitchens(r.data.filter((k) => k.active && k.type === 'normal_kitchen'))).catch(() => {});
+    api.get('/kitchens').then((r) => setKitchens(r.data.filter((k) => k.active))).catch(() => {});
   };
   useEffect(load, []);
 
