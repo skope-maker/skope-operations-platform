@@ -145,6 +145,7 @@ async def stock_rows(location_id: str, brand_id=None):
             'stock_base': round(qb, 3),
             'min_stock': it.get('min_stock', 0),
             'reorder_level': it.get('reorder_level', 0),
+            'max_stock': it.get('max_stock', 0),
             'status': status,
             'value': round(qb * (it.get('rate_per_base') or 0), 2),
             'is_sub_recipe': it.get('is_sub_recipe', False),

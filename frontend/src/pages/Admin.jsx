@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmDialog';
 
 const RECORD_KINDS = [
@@ -38,7 +38,32 @@ export default function Admin() {
   const [recordKind, setRecordKind] = useState('sales');
   const [records, setRecords] = useState([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [archived, setArchived] = useState([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
   const [confirm, confirmNode] = useConfirm();
+
+  const loadArchived = () => {
+    setArchivedLoading(true);
+    api.get('/admin/archived')
+      .then((r) => setArchived(r.data))
+      .catch((e) => { setArchived([]); toast.error(errMsg(e)); })
+      .finally(() => setArchivedLoading(false));
+  };
+  useEffect(loadArchived, []);
+
+  const restore = async (r) => {
+    const ok = await confirm({
+      title: 'Restore this entry?',
+      description: `Bring "${r.name}" (${r.type_label}) back from the archive? It will reappear in operational lists.`,
+      actionLabel: 'Restore',
+    });
+    if (!ok) return;
+    try {
+      const res = await api.post(`/admin/archived/${r.kind}/${r.id}/restore`);
+      toast.success(res.data?.message || 'Restored');
+      loadArchived();
+    } catch (e) { toast.error(errMsg(e)); }
+  };
 
   const loadRecords = (kind) => {
     setRecordsLoading(true);
@@ -116,6 +141,7 @@ export default function Admin() {
           <TabsTrigger value="users" data-testid="tab-a-users">Users & Roles</TabsTrigger>
           <TabsTrigger value="audit" data-testid="tab-a-audit">Audit Logs</TabsTrigger>
           <TabsTrigger value="cleanup" data-testid="tab-a-cleanup">Delete Entries</TabsTrigger>
+          <TabsTrigger value="archived" data-testid="tab-a-archived">Archived</TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-a-settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -182,6 +208,28 @@ export default function Admin() {
               },
             ]}
             rows={recordsLoading ? [] : records} />
+        </TabsContent>
+
+        <TabsContent value="archived">
+          <div className="mb-4 max-w-2xl text-xs text-muted-foreground">
+            Records that were archived (soft-deleted) because they had dependencies or posted inventory history. Restore any entry to bring it back into operational lists.
+          </div>
+          <DataTable testid="archived-table" searchKeys={['ref', 'name', 'type_label', 'archived_by']}
+            columns={[
+              { key: 'type_label', label: 'Type' },
+              { key: 'ref', label: 'Reference' },
+              { key: 'name', label: 'Name' },
+              { key: 'archived_at', label: 'Archived On', render: (r) => (r.archived_at ? new Date(r.archived_at).toLocaleString('en-IN') : '—') },
+              { key: 'archived_by', label: 'Archived By', render: (r) => r.archived_by || '—' },
+              {
+                key: 'actions', label: '', render: (r) => (
+                  <Button size="sm" variant="outline" onClick={() => restore(r)} data-testid={`restore-${r.kind}-${r.ref}`}>
+                    <RotateCcw className="mr-2 h-4 w-4" /> Restore
+                  </Button>
+                ),
+              },
+            ]}
+            rows={archivedLoading ? [] : archived} />
         </TabsContent>
 
         <TabsContent value="settings">

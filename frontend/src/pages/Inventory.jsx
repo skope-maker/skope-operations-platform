@@ -40,6 +40,9 @@ export default function Inventory() {
   const [adjustment, setAdjustment] = useState({ location_id: '', item_id: '', qty: 0, unit: 'KG', direction: 'in', reason: '' });
   const [batches, setBatches] = useState([]);
   const [batchLoc, setBatchLoc] = useState('');
+  const [reorder, setReorder] = useState([]);
+  const [reorderLoc, setReorderLoc] = useState('all');
+  const [reorderLoading, setReorderLoading] = useState(false);
 
   useEffect(() => {
     api.get('/kitchens').then((r) => setKitchens(r.data.filter((k) => k.active))).catch(() => {});
@@ -63,6 +66,15 @@ export default function Inventory() {
     setBatchLoc(locId);
     if (locId) api.get(`/inventory/batches?location_id=${locId}`).then((r) => setBatches(r.data)).catch((e) => toast.error(errMsg(e)));
   };
+
+  const loadReorder = () => {
+    setReorderLoading(true);
+    api.get(`/reports/reorder${reorderLoc !== 'all' ? `?location_id=${reorderLoc}` : ''}`)
+      .then((r) => setReorder(r.data))
+      .catch((e) => toast.error(errMsg(e)))
+      .finally(() => setReorderLoading(false));
+  };
+  useEffect(() => { loadReorder(); /* eslint-disable-next-line */ }, [reorderLoc]);
 
   const submitTransfer = async () => {
     try {
@@ -98,6 +110,7 @@ export default function Inventory() {
           <TabsTrigger value="ledger" data-testid="tab-inv-ledger">Inventory Ledger</TabsTrigger>
           <TabsTrigger value="transfer" data-testid="tab-inv-transfer">Stock Transfer</TabsTrigger>
           <TabsTrigger value="adjustment" data-testid="tab-inv-adjustment">Adjustments</TabsTrigger>
+          <TabsTrigger value="reorder" data-testid="tab-inv-reorder">Reorder List</TabsTrigger>
           <TabsTrigger value="batches" data-testid="tab-inv-batches">Batches / FEFO</TabsTrigger>
         </TabsList>
 
@@ -232,6 +245,31 @@ export default function Inventory() {
             <div className="space-y-2"><Label>Reason (required)</Label><Input className="h-12" value={adjustment.reason} onChange={(e) => setAdjustment({ ...adjustment, reason: e.target.value })} data-testid="adjustment-reason" /></div>
             <Button className="h-12 w-full" onClick={submitAdjustment} data-testid="adjustment-submit-btn">Post Adjustment</Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="reorder">
+          <div className="mb-4 rounded-xl border border-[#EAB308] bg-[#FEF9C3] p-4 text-sm text-[#854D0E]" data-testid="reorder-info">
+            Daily reorder list — items at or below their reorder / minimum level per kitchen. <b>Suggested Order</b> tops each item back up to its max (par) level.
+          </div>
+          <DataTable testid="reorder-table" exportName="reorder-list.csv" searchKeys={['item_name', 'item_code', 'category', 'location']}
+            filters={
+              <Select value={reorderLoc} onValueChange={setReorderLoc}>
+                <SelectTrigger className="h-11 w-52" data-testid="reorder-location-filter"><SelectValue placeholder="All Locations" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All Locations</SelectItem>{kitchens.map((k) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
+              </Select>
+            }
+            columns={[
+              { key: 'location', label: 'Kitchen' },
+              { key: 'item_code', label: 'Code' },
+              { key: 'item_name', label: 'Item' },
+              { key: 'category', label: 'Category' },
+              { key: 'stock', label: 'Current', numeric: true, render: (r) => <b className="tabular">{r.stock} {r.unit}</b> },
+              { key: 'reorder_level', label: 'Reorder', numeric: true, render: (r) => `${r.reorder_level} ${r.unit}` },
+              { key: 'max_stock', label: 'Max/Par', numeric: true, render: (r) => `${r.max_stock} ${r.unit}` },
+              { key: 'suggested_order_qty', label: 'Suggested Order', numeric: true, render: (r) => <b className="tabular text-[#166534]">{r.suggested_order_qty} {r.unit}</b> },
+              { key: 'status', label: 'Status', render: (r) => <StockBadge status={r.status} /> },
+            ]}
+            rows={reorderLoading ? [] : reorder} />
         </TabsContent>
 
         <TabsContent value="batches">

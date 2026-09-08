@@ -74,3 +74,63 @@ async def delete_user(user_id: str, user=Depends(require_roles('admin'))):
     await db.users.delete_one({'id': user_id})
     await audit(user, 'Deleted user', target['email'], user_id)
     return {'ok': True, 'archived': False, 'message': f"User {target['email']} deleted"}
+
+
+# ---------------- Archive & Restore ----------------
+# flag: 'deleted' for masters (soft delete), 'archived' for transactions/users
+ARCHIVE_SPECS = {
+    'items': {'coll': 'items', 'label': 'Item', 'flag': 'deleted', 'name': 'name', 'code': 'code', 'master': True},
+    'brands': {'coll': 'brands', 'label': 'Brand', 'flag': 'deleted', 'name': 'name', 'code': 'code', 'master': True},
+    'units': {'coll': 'units', 'label': 'Unit', 'flag': 'deleted', 'name': 'name', 'code': 'code', 'master': True},
+    'suppliers': {'coll': 'suppliers', 'label': 'Supplier', 'flag': 'deleted', 'name': 'name', 'code': '', 'master': True},
+    'categories': {'coll': 'categories', 'label': 'Category', 'flag': 'deleted', 'name': 'name', 'code': '', 'master': True},
+    'kitchens': {'coll': 'kitchens', 'label': 'Location', 'flag': 'deleted', 'name': 'name', 'code': 'code', 'master': True},
+    'users': {'coll': 'users', 'label': 'User', 'flag': 'archived', 'name': 'name', 'code': 'email', 'master': False},
+    'sales': {'coll': 'daily_sales', 'label': 'Sales entry', 'flag': 'archived', 'name': '', 'code': 'sale_no', 'master': False},
+    'receipts': {'coll': 'procurement_receipts', 'label': 'Purchase receipt', 'flag': 'archived', 'name': '', 'code': 'receipt_no', 'master': False},
+    'intents': {'coll': 'kitchen_intents', 'label': 'Kitchen intent', 'flag': 'archived', 'name': '', 'code': 'intent_no', 'master': False},
+    'wastage': {'coll': 'wastage', 'label': 'Wastage entry', 'flag': 'archived', 'name': '', 'code': 'wastage_no', 'master': False},
+    'productions': {'coll': 'production_batches', 'label': 'Production batch', 'flag': 'archived', 'name': '', 'code': 'batch_no', 'master': False},
+}
+
+
+@router.get('/archived')
+async def list_archived(user=Depends(require_roles('admin'))):
+    out = []
+    for kind, spec in ARCHIVE_SPECS.items():
+        docs = await db[spec['coll']].find({spec['flag']: True}, {'_id': 0, 'attachment': 0, 'photo': 0, 'photos': 0}).to_list(1000)
+        for d in docs:
+            code = d.get(spec['code']) if spec['code'] else ''
+            name = d.get(spec['name']) if spec['name'] else ''
+            out.append({
+                'kind': kind, 'id': d['id'], 'type_label': spec['label'],
+                'ref': code or d['id'][:8], 'name': name or code or d['id'][:8],
+                'archived_at': d.get('archived_at', ''),
+                'archived_by': d.get('archived_by', ''),
+            })
+    out.sort(key=lambda r: r.get('archived_at') or '', reverse=True)
+    return out
+
+
+@router.post('/archived/{kind}/{rid}/restore')
+async def restore_archived(kind: str, rid: str, user=Depends(require_roles('admin'))):
+    spec = ARCHIVE_SPECS.get(kind)
+    if not spec:
+        raise HTTPException(404, 'Unknown record type')
+    doc = await db[spec['coll']].find_one({'id': rid}, {'_id': 0, 'attachment': 0})
+    if not doc:
+        raise HTTPException(404, f"{spec['label']} not found")
+    if not doc.get(spec['flag']):
+        raise HTTPException(400, f"{spec['label']} is not archived")
+    set_doc = {spec['flag']: False}
+    if spec['master']:
+        set_doc['active'] = True
+        if 'status' in doc:
+            set_doc['status'] = 'active'
+    elif kind == 'users':
+        set_doc['active'] = True
+    unset = {'archived_at': '', 'archived_by': ''}
+    await db[spec['coll']].update_one({'id': rid}, {'$set': set_doc, '$unset': unset})
+    ref = (doc.get(spec['code']) if spec['code'] else '') or rid[:8]
+    await audit(user, f"Restored {spec['label'].lower()}", f"{ref} brought back from archive", ref)
+    return {'ok': True, 'message': f"{spec['label']} {ref} restored"}

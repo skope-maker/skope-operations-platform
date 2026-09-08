@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmDialog';
+import { BulkUploadDialog } from '../components/BulkUpload';
 
 const UNIT_CODES = ['KG', 'GM', 'LTR', 'ML', 'PCS', 'PKT', 'BOX', 'BTL'];
 const LOC_TYPES = [['store', 'Main / Dry Store'], ['base_kitchen', 'Base Kitchen'], ['normal_kitchen', 'Normal Kitchen'], ['rd', 'R&D']];
@@ -28,6 +29,7 @@ export default function Masters() {
   const [kitchens, setKitchens] = useState([]);
   const [dialog, setDialog] = useState({ type: null, record: null });
   const [form, setForm] = useState({});
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const load = () => {
     api.get('/brands').then((r) => setBrands(r.data)).catch(() => {});
@@ -116,7 +118,10 @@ export default function Masters() {
         </TabsContent>
 
         <TabsContent value="items">
-          <div className="mb-4"><Button className="h-12" onClick={() => openDialog('item')} data-testid="new-item-btn"><Plus className="mr-2 h-5 w-5" /> New Item</Button></div>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <Button className="h-12" onClick={() => openDialog('item')} data-testid="new-item-btn"><Plus className="mr-2 h-5 w-5" /> New Item</Button>
+            <Button variant="outline" className="h-12" onClick={() => setBulkOpen(true)} data-testid="bulk-item-btn"><Upload className="mr-2 h-5 w-5" /> Bulk Upload Items</Button>
+          </div>
           <DataTable testid="items-table" exportName="items.csv" searchKeys={['name', 'code', 'category_name']}
             columns={[
               { key: 'code', label: 'Code' },
@@ -311,6 +316,7 @@ export default function Masters() {
         </DialogContent>
       </Dialog>
       {confirmNode}
+      <BulkUploadDialog kind="item" open={bulkOpen} onClose={() => setBulkOpen(false)} onImported={load} />
     </div>
   );
 }

@@ -7,12 +7,13 @@ import { toast } from 'sonner';
 import { Download, Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 
 const TITLES = {
+  item: 'Item & Opening Stock Bulk Upload',
   subrecipe: 'Sub-Recipe Bulk Upload',
   recipe: 'Main Recipe Bulk Upload',
   sales: 'Daily Sales Bulk Upload',
 };
 
-const GROUP_LABEL = { subrecipe: 'sub-recipes', recipe: 'recipes', sales: 'sales entries' };
+const GROUP_LABEL = { item: 'items', subrecipe: 'sub-recipes', recipe: 'recipes', sales: 'sales entries' };
 
 export function BulkUploadDialog({ kind, open, onClose, onImported }) {
   const [file, setFile] = useState(null);
@@ -133,7 +134,9 @@ export function BulkUploadDialog({ kind, open, onClose, onImported }) {
                       Excel rows {g.rows?.[0]}–{g.rows?.[g.rows.length - 1]} ·{' '}
                       {kind === 'sales'
                         ? `${g.items.length} product line(s), total ₹${g.total_amount ?? 0}`
-                        : `${g.items.length} ingredient line(s)`}
+                        : kind === 'item'
+                          ? `${g.purchase_unit || '?'} / ${g.consumption_unit || '?'}${g.opening ? ` · opening ${g.opening.qty} ${g.opening.unit} @ ${g.opening.location_name}` : ''}`
+                          : `${g.items.length} ingredient line(s)`}
                       {kind === 'subrecipe' && g.yield_qty ? ` · yield ${g.yield_qty} ${g.yield_unit}` : ''}
                     </div>
                     {g.items?.length > 0 && (

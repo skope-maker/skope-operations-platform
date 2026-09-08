@@ -6,10 +6,12 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from db import db
+from db import db, today_str
 from auth import require_roles
+from inventory import to_base, post_txn
 from routers_recipes import SubRecipeIn, SubRecipeItemIn, RecipeIn, RecipeItemIn, create_subrecipe, create_recipe
 from routers_sales import SaleIn, SaleItemIn, create_sale
+from routers_masters import ItemIn, create_item
 
 router = APIRouter(prefix='/bulk', tags=['bulk'])
 
@@ -17,6 +19,32 @@ HEADER_FILL = PatternFill('solid', fgColor='1E293B')
 MANDATORY_FILL = PatternFill('solid', fgColor='0F766E')
 
 SPECS = {
+    'item': {
+        'sheet': 'Items',
+        'label': 'Item',
+        'columns': [
+            ('Item Code', True, 'Unique code for the item, e.g. ITM-ONION.'),
+            ('Item Name', True, 'Display name, e.g. Onion.'),
+            ('Category', False, 'Category master name. Leave blank if none.'),
+            ('Subcategory', False, 'Free text subcategory.'),
+            ('Purchase Unit', True, 'Unit master code you buy in, e.g. KG, LTR, BOX.'),
+            ('Consumption Unit', True, 'Unit master code you consume/track in, e.g. GM, ML. Must be the same family as purchase unit.'),
+            ('Conversion Factor', False, 'Purchase unit to consumption unit factor. Blank = 1.'),
+            ('Min Stock', False, 'Minimum stock in consumption unit. Blank = 0.'),
+            ('Reorder Level', False, 'Reorder trigger level in consumption unit. Blank = 0.'),
+            ('Max Stock', False, 'Maximum / par stock in consumption unit. Blank = 0.'),
+            ('Rate', False, 'Purchase rate per purchase unit (number). Blank = 0.'),
+            ('Supplier', False, 'Supplier master name. Leave blank if none.'),
+            ('Opening Qty', False, 'Optional opening stock quantity (number > 0). Requires Opening Unit and Opening Location.'),
+            ('Opening Unit', False, 'Unit master code of the opening quantity. Same family as consumption unit.'),
+            ('Opening Location', False, 'Location/kitchen master code where the opening stock sits, e.g. STORE.'),
+        ],
+        'examples': [
+            ['ITM-ONION', 'Onion', 'Vegetables', 'Fresh', 'KG', 'GM', 1000, 5000, 10000, 50000, 40, 'Local Mandi', 25, 'KG', 'STORE'],
+            ['ITM-OIL', 'Refined Oil', 'Groceries', '', 'LTR', 'ML', 1000, 2000, 5000, 20000, 120, 'Local Mandi', '', '', ''],
+            ['ITM-CHICKEN', 'Chicken', 'Meat', 'Fresh', 'KG', 'GM', 1000, 3000, 6000, 20000, 220, '', 10, 'KG', 'STORE'],
+        ],
+    },
     'subrecipe': {
         'sheet': 'SubRecipes',
         'label': 'Sub-Recipe',
@@ -216,6 +244,8 @@ async def _masters():
         'kitchens': {k['code'].upper(): k for k in await db.kitchens.find({'deleted': {'$ne': True}}, {'_id': 0}).to_list(500)},
         'subs': {s['code'].upper(): s for s in await db.sub_recipes.find({}, {'_id': 0}).to_list(2000)},
         'recipes': {r['code'].upper(): r for r in await db.recipes.find({}, {'_id': 0}).to_list(5000)},
+        'categories': {c['name'].upper(): c for c in await db.categories.find({'deleted': {'$ne': True}}, {'_id': 0}).to_list(2000)},
+        'suppliers': {s['name'].upper(): s for s in await db.suppliers.find({'deleted': {'$ne': True}}, {'_id': 0}).to_list(2000)},
     }
 
 
@@ -224,6 +254,81 @@ def _err(errors, row, field, reason, value):
 
 
 # ---------------- validators ----------------
+async def validate_item(rows, m):
+    groups, errors, seen = [], [], set()
+    for row, v in rows:
+        (code, name, cat, subcat, pu, cu, conv, mins, reorder, maxs, rate, supplier, oqty, ounit, oloc) = v
+        code_u = _norm(code).upper()
+        e = []
+        if not code_u:
+            _err(e, row, 'Item Code', 'Mandatory field is blank', code)
+        elif code_u in seen:
+            _err(e, row, 'Item Code', 'Item code repeated within the file', code)
+        elif code_u in m['items']:
+            _err(e, row, 'Item Code', 'Item code already exists in the system', code)
+        if code_u:
+            seen.add(code_u)
+        if not _norm(name):
+            _err(e, row, 'Item Name', 'Mandatory field is blank', name)
+        pu_u, cu_u = _norm(pu).upper(), _norm(cu).upper()
+        pud, cud = m['units'].get(pu_u), m['units'].get(cu_u)
+        if not pu_u:
+            _err(e, row, 'Purchase Unit', 'Mandatory field is blank', pu)
+        elif not pud:
+            _err(e, row, 'Purchase Unit', 'Unit code not found in Unit master', pu)
+        if not cu_u:
+            _err(e, row, 'Consumption Unit', 'Mandatory field is blank', cu)
+        elif not cud:
+            _err(e, row, 'Consumption Unit', 'Unit code not found in Unit master', cu)
+        if pud and cud and pud['family'] != cud['family']:
+            _err(e, row, 'Purchase / Consumption Unit', 'Purchase and consumption units are not convertible (different families)', f'{pu_u}/{cu_u}')
+        cat_u = _norm(cat).upper()
+        cat_doc = m['categories'].get(cat_u) if cat_u else None
+        if cat_u and not cat_doc:
+            _err(e, row, 'Category', 'Category not found in Category master', cat)
+        sup_u = _norm(supplier).upper()
+        sup_doc = m['suppliers'].get(sup_u) if sup_u else None
+        if sup_u and not sup_doc:
+            _err(e, row, 'Supplier', 'Supplier not found in Supplier master', supplier)
+        conv_v = _num(conv)
+        if _norm(conv) and (conv_v is None or conv_v <= 0):
+            _err(e, row, 'Conversion Factor', 'Must be a number greater than zero', conv)
+        for fname, fval in (('Min Stock', mins), ('Reorder Level', reorder), ('Max Stock', maxs), ('Rate', rate)):
+            n = _num(fval)
+            if _norm(fval) and (n is None or n < 0):
+                _err(e, row, fname, 'Must be a number of zero or more', fval)
+        opening = None
+        if any(_norm(x) for x in (oqty, ounit, oloc)):
+            oq = _num(oqty)
+            ou = _norm(ounit).upper()
+            od = m['kitchens'].get(_norm(oloc).upper())
+            if oq is None or oq <= 0:
+                _err(e, row, 'Opening Qty', 'Must be a number greater than zero when opening stock is given', oqty)
+            if not ou:
+                _err(e, row, 'Opening Unit', 'Required when opening stock is given', ounit)
+            elif ou not in m['units']:
+                _err(e, row, 'Opening Unit', 'Unit code not found in Unit master', ounit)
+            elif cud and m['units'][ou]['family'] != cud['family']:
+                _err(e, row, 'Opening Unit', 'Opening unit is not convertible with the consumption unit', ounit)
+            if not _norm(oloc):
+                _err(e, row, 'Opening Location', 'Required when opening stock is given', oloc)
+            elif not od:
+                _err(e, row, 'Opening Location', 'Location code not found in Location master', oloc)
+            if oq and oq > 0 and ou in m['units'] and od:
+                opening = {'qty': oq, 'unit': ou, 'location_id': od['id'], 'location_name': od['name']}
+        groups.append({
+            'key': code_u or f'__row{row}', 'code': code_u, 'name': _norm(name),
+            'category_id': (cat_doc or {}).get('id', ''), 'subcategory': _norm(subcat),
+            'purchase_unit': pu_u, 'consumption_unit': cu_u,
+            'conversion_factor': conv_v or 1, 'min_stock': _num(mins) or 0,
+            'reorder_level': _num(reorder) or 0, 'max_stock': _num(maxs) or 0,
+            'rate': _num(rate) or 0, 'supplier_id': (sup_doc or {}).get('id', ''),
+            'opening': opening, 'rows': [row], 'items': [], 'errors': e, 'valid': not e,
+        })
+        errors += e
+    return groups, errors
+
+
 async def validate_subrecipe(rows, m):
     groups, order, errors = {}, [], []
     for row, v in rows:
@@ -448,7 +553,7 @@ async def validate_sales(rows, m):
     return [groups[k] for k in order], errors
 
 
-VALIDATORS = {'subrecipe': validate_subrecipe, 'recipe': validate_recipe, 'sales': validate_sales}
+VALIDATORS = {'item': validate_item, 'subrecipe': validate_subrecipe, 'recipe': validate_recipe, 'sales': validate_sales}
 
 
 @router.post('/{kind}/validate')
@@ -465,7 +570,7 @@ async def validate_upload(kind: str, file: UploadFile = File(...),
         'total_groups': len(groups),
         'valid_groups': len(valid),
         'failed_groups': len(groups) - len(valid),
-        'valid_rows': sum(len(g['items']) for g in valid),
+        'valid_rows': sum((len(g['rows']) if kind == 'item' else len(g['items'])) for g in valid),
         'failed_rows': len({e['row'] for e in errors}),
         'groups': groups,
         'errors': sorted(errors, key=lambda e: e['row']),
@@ -489,7 +594,25 @@ async def import_upload(kind: str, body: ImportIn,
         rows = g.get('rows') or []
         first_row = rows[0] if rows else 0
         try:
-            if kind == 'subrecipe':
+            if kind == 'item':
+                payload = ItemIn(code=g['code'], name=g['name'], category_id=g.get('category_id', ''),
+                                 subcategory=g.get('subcategory', ''), purchase_unit=g['purchase_unit'],
+                                 consumption_unit=g['consumption_unit'],
+                                 conversion_factor=float(g.get('conversion_factor') or 1),
+                                 min_stock=float(g.get('min_stock') or 0), reorder_level=float(g.get('reorder_level') or 0),
+                                 max_stock=float(g.get('max_stock') or 0), rate=float(g.get('rate') or 0),
+                                 supplier_id=g.get('supplier_id', ''))
+                doc = await create_item(payload, user)
+                detail = f"{doc['purchase_unit']} / {doc['consumption_unit']}"
+                op = g.get('opening')
+                if op:
+                    qb, _ = await to_base(float(op['qty']), op['unit'])
+                    await post_txn(doc['id'], qb, 'opening', to_location_id=op['location_id'], user=user,
+                                   qty=float(op['qty']), unit=op['unit'], reference_no='OPENING',
+                                   rate_per_base=doc.get('rate_per_base') or 0, remarks='Bulk opening stock')
+                    detail += f" · opening {op['qty']} {op['unit']} @ {op['location_name']}"
+                imported.append({'ref': doc['code'], 'label': doc['name'], 'rows': rows, 'detail': detail})
+            elif kind == 'subrecipe':
                 payload = SubRecipeIn(name=g['name'], code=g['code'], brand_id=g.get('brand_id') or '',
                                       output_item_id=g['output_item_id'], yield_qty=float(g['yield_qty']),
                                       yield_unit=g['yield_unit'],

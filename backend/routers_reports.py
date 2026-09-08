@@ -107,6 +107,29 @@ async def dashboard(user=Depends(get_current_user)):
     }
 
 
+@router.get('/reports/reorder')
+async def report_reorder(location_id: str = '', user=Depends(get_current_user)):
+    """Daily reorder / low-stock list per kitchen: items at or below reorder/min level with suggested top-up qty."""
+    locations = await db.kitchens.find({'deleted': {'$ne': True}, 'active': True}, {'_id': 0}).to_list(1000)
+    if location_id:
+        locations = [l for l in locations if l['id'] == location_id]
+    rows = []
+    for loc in locations:
+        for r in await stock_rows(loc['id']):
+            if r['status'] in ('low', 'warning') and (r['min_stock'] or r['reorder_level']):
+                target = r['max_stock'] or r['reorder_level'] or r['min_stock'] or 0
+                rows.append({
+                    'location': loc['name'], 'location_id': loc['id'],
+                    'item_code': r['item_code'], 'item_name': r['item_name'], 'category': r['category'],
+                    'unit': r['unit'], 'stock': r['stock'], 'min_stock': r['min_stock'],
+                    'reorder_level': r['reorder_level'], 'max_stock': r['max_stock'],
+                    'suggested_order_qty': round(max(target - r['stock'], 0), 3),
+                    'status': r['status'],
+                })
+    rows.sort(key=lambda r: (r['location'], 0 if r['status'] == 'low' else 1, r['item_name']))
+    return rows
+
+
 @router.get('/reports/sales')
 async def report_sales(date_from: str = '', date_to: str = '', brand_id: str = '', user=Depends(get_current_user)):
     q = {}

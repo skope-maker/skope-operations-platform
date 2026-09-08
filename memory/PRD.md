@@ -52,12 +52,29 @@ admin, procurement_manager, store_keeper, store_manager, chef, management
 ## Verification
 - `/app/tests/test_new_features.py` — end-to-end backend pass (templates, validate/import for all 3 kinds,
   duplicate blocking, item search, intent→issue through the hierarchy, admin delete/archive).
-- Testing agent iteration 4 (`/app/test_reports/iteration_4.json`): backend 9/9 permission tests +
-  all UI flows pass, no functional defects. Only optional cosmetic notes.
+- `/app/tests/test_item_bulk.py` — item bulk validate (2 valid / 2 failed) + import creating items and
+  posting opening stock (25 KG → 25000 GM), reorder detection, cleanup.
+- Testing agent iteration 4 (`/app/test_reports/iteration_4.json`): backend + UI flows pass.
+- Testing agent iteration 5 (`/app/test_reports/iteration_5.json`): frontend 100% pass for the 3 new
+  features + Inventory/Admin regression, no defects.
+
+### June 2026 — Item bulk upload, Reorder list, Archive restore
+- **Item & opening-stock bulk upload** (`/api/bulk/item/*` in `routers_bulk.py`): template with 15 columns
+  incl. optional Opening Qty/Unit/Location; one row per item; validates codes (dup in file + in system),
+  unit family convertibility, category/supplier match by name, numeric fields; import creates items via
+  `create_item` and, when opening columns are filled, posts an `opening` inventory txn. Wired into
+  Masters → Items (`bulk-item-btn`).
+- **Reorder list** (`GET /api/reports/reorder?location_id=`): per-kitchen items at/below reorder or min
+  with `suggested_order_qty` (top up to max/par). New Inventory → **Reorder List** tab (`tab-inv-reorder`)
+  with location filter + CSV export. `stock_rows` now returns `max_stock`.
+- **Archive & Restore** (`GET /api/admin/archived`, `POST /api/admin/archived/{kind}/{rid}/restore`):
+  unified view of archived masters (items, brands, units, suppliers, categories, locations) and
+  transactions (sales, receipts, intents, wastage, productions) + users; restore clears the
+  `deleted`/`archived` flag (and re-activates masters/users). New Admin → **Archived** tab (`tab-a-archived`)
+  with confirm-dialog Restore. Admin-only, audit-logged.
 
 ## Backlog
-- P1: Bulk upload for Items master and opening stock.
-- P1: Restore/unarchive screen for archived records.
 - P2: Pagination/streaming for very large (10k+ row) imports.
 - P2: Center invoice preview image; add DialogDescription to silence a11y warnings.
 - P2: Log a warning when a location's supply source is missing and the main-store fallback is used.
+- P2: Distinct `confirm-restore-btn` testid to disambiguate restore vs delete in automation.
