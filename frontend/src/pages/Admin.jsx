@@ -10,7 +10,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmDialog';
+
+const RECORD_KINDS = [
+  ['sales', 'Sales Entries'],
+  ['receipts', 'Purchase Receipts'],
+  ['intents', 'Kitchen Intents'],
+  ['productions', 'Production Batches'],
+  ['wastage', 'Wastage Entries'],
+];
 
 const ROLE_LABELS = {
   admin: 'Admin', procurement_manager: 'Procurement Manager', store_keeper: 'Store Keeper',
@@ -26,6 +35,46 @@ export default function Admin() {
   const [uform, setUform] = useState({ name: '', email: '', password: '', role: 'chef' });
   const [sform, setSform] = useState({ company_name: '', variance_tolerance_pct: 2 });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [recordKind, setRecordKind] = useState('sales');
+  const [records, setRecords] = useState([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [confirm, confirmNode] = useConfirm();
+
+  const loadRecords = (kind) => {
+    setRecordsLoading(true);
+    api.get(`/admin/records/${kind}`)
+      .then((r) => setRecords(r.data))
+      .catch((e) => { setRecords([]); toast.error(errMsg(e)); })
+      .finally(() => setRecordsLoading(false));
+  };
+
+  useEffect(() => { loadRecords(recordKind); }, [recordKind]);
+
+  const deleteRecord = async (r) => {
+    const ok = await confirm({
+      title: 'Delete this entry?',
+      description: `Are you sure you want to delete ${r.ref_no}? This action cannot be undone. If it already affected inventory it will be archived instead, so stock history stays intact.`,
+    });
+    if (!ok) return;
+    try {
+      const res = await api.delete(`/admin/records/${recordKind}/${r.id}`);
+      toast.success(res.data?.message || 'Deleted');
+      loadRecords(recordKind);
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const deleteUser = async (u) => {
+    const ok = await confirm({
+      title: 'Delete this user?',
+      description: `Are you sure you want to delete ${u.email}? This action cannot be undone. Users with activity history are deactivated and archived instead.`,
+    });
+    if (!ok) return;
+    try {
+      const res = await api.delete(`/admin/users/${u.id}`);
+      toast.success(res.data?.message || 'User deleted');
+      load();
+    } catch (e) { toast.error(errMsg(e)); }
+  };
 
   const load = () => {
     api.get('/users').then((r) => setUsers(r.data)).catch((e) => toast.error(errMsg(e)));
@@ -66,6 +115,7 @@ export default function Admin() {
         <TabsList className="mb-4">
           <TabsTrigger value="users" data-testid="tab-a-users">Users & Roles</TabsTrigger>
           <TabsTrigger value="audit" data-testid="tab-a-audit">Audit Logs</TabsTrigger>
+          <TabsTrigger value="cleanup" data-testid="tab-a-cleanup">Delete Entries</TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-a-settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -79,7 +129,10 @@ export default function Admin() {
               { key: 'active', label: 'Status', render: (r) => (r.active ? <span className="font-semibold text-[#166534]">Active</span> : <span className="text-muted-foreground">Inactive</span>) },
               {
                 key: 'actions', label: '', render: (r) => (
-                  <Button size="sm" variant="outline" onClick={() => { setEditUser(r); setUform({ name: r.name, email: r.email, password: '', role: r.role, active: r.active }); setUserDialog(true); }} data-testid={`edit-user-${r.email}`}>Edit</Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setEditUser(r); setUform({ name: r.name, email: r.email, password: '', role: r.role, active: r.active }); setUserDialog(true); }} data-testid={`edit-user-${r.email}`}>Edit</Button>
+                    <Button size="sm" variant="ghost" onClick={() => deleteUser(r)} data-testid={`delete-user-${r.email}`}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
                 ),
               },
             ]}
@@ -97,6 +150,38 @@ export default function Admin() {
               { key: 'reference', label: 'Reference' },
             ]}
             rows={logs} />
+        </TabsContent>
+
+        <TabsContent value="cleanup">
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <div className="space-y-2">
+              <Label>Record Type</Label>
+              <Select value={recordKind} onValueChange={setRecordKind}>
+                <SelectTrigger className="h-12 w-64" data-testid="cleanup-kind"><SelectValue /></SelectTrigger>
+                <SelectContent>{RECORD_KINDS.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <p className="max-w-xl text-xs text-muted-foreground">
+              Admin-only. Entries that never touched inventory are deleted permanently. Entries that already moved stock
+              (posted sales, approved receipts, production, wastage) are archived — hidden from operational lists but kept for data integrity.
+            </p>
+          </div>
+          <DataTable testid="cleanup-table" searchKeys={['ref_no', 'date', 'status', 'location_name']}
+            columns={[
+              { key: 'ref_no', label: 'Reference' },
+              { key: 'date', label: 'Date', render: (r) => r.date || r.receipt_date || '—' },
+              { key: 'location_name', label: 'Location', render: (r) => r.location_name || r.kitchen_name || '—' },
+              { key: 'status', label: 'Status', render: (r) => r.status || 'completed' },
+              { key: 'created_by', label: 'Created By', render: (r) => r.created_by || r.requested_by || r.chef || r.issued_by || '—' },
+              {
+                key: 'actions', label: '', render: (r) => (
+                  <Button size="sm" variant="ghost" onClick={() => deleteRecord(r)} data-testid={`delete-record-${r.ref_no}`}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                ),
+              },
+            ]}
+            rows={recordsLoading ? [] : records} />
         </TabsContent>
 
         <TabsContent value="settings">
@@ -138,6 +223,7 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+      {confirmNode}
     </div>
   );
 }

@@ -27,6 +27,18 @@ async def base_to_unit(qty_base: float, unit_code: str) -> float:
     return qty_base / u['factor']
 
 
+async def source_location(location_id: str):
+    """Supply source for a kitchen: its parent in the store→base→normal chain, else the main store."""
+    loc = await db.kitchens.find_one({'id': location_id}, {'_id': 0})
+    if loc and loc.get('parent_id'):
+        parent = await db.kitchens.find_one({'id': loc['parent_id'], 'deleted': {'$ne': True}}, {'_id': 0})
+        if parent:
+            return parent
+    if loc and loc.get('type') == 'store':
+        return loc
+    return await db.kitchens.find_one({'type': 'store', 'deleted': {'$ne': True}}, {'_id': 0})
+
+
 async def stock_base(item_id: str, location_id: str) -> float:
     ins = await db.inventory_transactions.aggregate([
         {'$match': {'item_id': item_id, 'to_location_id': location_id}},

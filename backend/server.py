@@ -14,6 +14,8 @@ from routers_recipes import router as recipes_router
 from routers_sales import router as sales_router
 from routers_closing import router as closing_router
 from routers_reports import router as reports_router
+from routers_bulk import router as bulk_router
+from routers_admin import router as admin_router
 from seed import seed
 
 app = FastAPI(title='Kitchen Inventory & Recipe Management')
@@ -31,6 +33,8 @@ app.include_router(recipes_router, prefix=API)
 app.include_router(sales_router, prefix=API)
 app.include_router(closing_router, prefix=API)
 app.include_router(reports_router, prefix=API)
+app.include_router(bulk_router, prefix=API)
+app.include_router(admin_router, prefix=API)
 
 app.add_middleware(
     CORSMiddleware,

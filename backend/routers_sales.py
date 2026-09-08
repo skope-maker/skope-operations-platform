@@ -30,7 +30,8 @@ async def create_sale(body: SaleIn, user=Depends(require_roles('admin', 'chef', 
     if await is_locked(body.date, body.kitchen_id) and user['role'] != 'admin':
         raise HTTPException(400, f'Day {body.date} is locked for this location')
     dup = await db.daily_sales.find_one({'date': body.date, 'brand_id': body.brand_id,
-                                         'kitchen_id': body.kitchen_id, 'source': body.source,
+                                         'kitchen_id': body.kitchen_id,
+                                         'archived': {'$ne': True},
                                          'status': {'$in': ['draft', 'posted']}})
     if dup:
         raise HTTPException(400, f"Sales for {body.date} already exist for this brand/kitchen (ref {dup['sale_no']}, status {dup['status']})")
@@ -69,7 +70,7 @@ async def create_sale(body: SaleIn, user=Depends(require_roles('admin', 'chef', 
 
 @router.get('')
 async def list_sales(date: str = '', brand_id: str = '', status: str = '', user=Depends(get_current_user)):
-    q = {}
+    q = {'archived': {'$ne': True}}
     if date:
         q['date'] = date
     if brand_id:

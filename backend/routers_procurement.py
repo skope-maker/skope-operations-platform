@@ -90,7 +90,7 @@ async def list_receipts(status: str = '', supplier_id: str = '', user=Depends(ge
         q['status'] = status
     if supplier_id:
         q['supplier_id'] = supplier_id
-    docs = await db.procurement_receipts.find(q, {'_id': 0, 'attachment': 0}).sort('created_at', -1).to_list(1000)
+    docs = await db.procurement_receipts.find({**q, 'archived': {'$ne': True}}, {'_id': 0, 'attachment': 0}).sort('created_at', -1).to_list(1000)
     return docs
 
 

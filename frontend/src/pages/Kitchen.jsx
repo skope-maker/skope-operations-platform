@@ -9,16 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
+import { ItemPicker } from '../components/ItemPicker';
 
 const ISSUE_TYPES = [
   { value: 'base_kitchen', label: 'Base Kitchen (sub-recipes / prep)' },
   { value: 'normal_kitchen', label: 'Normal Kitchen (daily service)' },
   { value: 'rd', label: 'R&D (trials)' },
+  { value: 'store', label: 'Main / Dry Store' },
 ];
 
 export default function Kitchen() {
   const [kitchens, setKitchens] = useState([]);
-  const [items, setItems] = useState([]);
   const [brands, setBrands] = useState([]);
   const [subRecipes, setSubRecipes] = useState([]);
   const [intents, setIntents] = useState([]);
@@ -36,7 +37,6 @@ export default function Kitchen() {
 
   const load = () => {
     api.get('/kitchens').then((r) => setKitchens(r.data.filter((k) => k.active))).catch(() => {});
-    api.get('/items').then((r) => setItems(r.data.filter((i) => i.active))).catch(() => {});
     api.get('/brands').then((r) => setBrands(r.data.filter((b) => b.status === 'active'))).catch(() => {});
     api.get('/subrecipes').then((r) => setSubRecipes(r.data.filter((s) => s.active))).catch(() => {});
     api.get('/kitchen/intents').then((r) => setIntents(r.data)).catch((e) => toast.error(errMsg(e)));
@@ -47,6 +47,9 @@ export default function Kitchen() {
   useEffect(load, []);
 
   const kitchensForType = (t) => kitchens.filter((k) => k.type === t);
+  const intentTargets = kitchensForType(intent.issue_type);
+  const targetKitchen = kitchens.find((k) => k.id === intent.kitchen_id);
+  const sourceName = targetKitchen ? (kitchens.find((k) => k.id === targetKitchen.parent_id)?.name || 'Main Store') : '';
 
   const submitIntent = async () => {
     try {
@@ -166,19 +169,29 @@ export default function Kitchen() {
               <div className="space-y-2">
                 <Label>Kitchen</Label>
                 <Select value={intent.kitchen_id} onValueChange={(v) => setIntent({ ...intent, kitchen_id: v })}>
-                  <SelectTrigger className="h-12" data-testid="intent-kitchen"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{kitchens.filter((k) => k.type === intent.issue_type).map((k) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="h-12" data-testid="intent-kitchen"><SelectValue placeholder={intentTargets.length ? 'Select' : 'No location of this type'} /></SelectTrigger>
+                  <SelectContent>{intentTargets.map((k) => <SelectItem key={k.id} value={k.id}>{k.name} ({k.code})</SelectItem>)}</SelectContent>
                 </Select>
+                {intentTargets.length === 0 && (
+                  <p className="text-xs font-medium text-[#991B1B]" data-testid="intent-no-kitchen-hint">
+                    No active {intent.issue_type.replace(/_/g, ' ')} location exists. Add one in Masters → Kitchens.
+                  </p>
+                )}
+                {targetKitchen && (
+                  <p className="text-xs text-muted-foreground" data-testid="intent-source-hint">Stock will be issued from <b>{sourceName}</b></p>
+                )}
               </div>
             </div>
             {intent.items.map((l, i) => (
               <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
                 <div className="col-span-12 sm:col-span-4 space-y-1">
                   <Label className="text-xs">Item</Label>
-                  <Select value={l.item_id} onValueChange={(v) => { const it = items.find((x) => x.id === v); setIntent((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: v, unit: it?.consumption_unit || 'KG' } : x)) })); }}>
-                    <SelectTrigger className="h-11" data-testid={`intent-item-${i}`}><SelectValue placeholder="Select item" /></SelectTrigger>
-                    <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <ItemPicker
+                    testid={`intent-item-${i}`}
+                    value={l.item_id}
+                    locationId={targetKitchen?.parent_id || ''}
+                    onSelect={(it) => setIntent((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: it?.id || '', unit: it?.consumption_unit || 'KG' } : x)) }))}
+                    placeholder="Search item name / code" />
                 </div>
                 <div className="col-span-4 sm:col-span-2 space-y-1"><Label className="text-xs">Qty</Label><Input type="number" min="0" className="h-11" value={l.qty} onChange={(e) => setIntent((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)) }))} data-testid={`intent-qty-${i}`} /></div>
                 <div className="col-span-4 sm:col-span-2 space-y-1">
@@ -204,6 +217,7 @@ export default function Kitchen() {
               { key: 'date', label: 'Date' },
               { key: 'brand_name', label: 'Brand' },
               { key: 'kitchen_name', label: 'Kitchen' },
+              { key: 'source_location_name', label: 'Issued From', render: (r) => r.source_location_name || 'Main Store' },
               { key: 'issue_type', label: 'Type', render: (r) => r.issue_type.replace(/_/g, ' ') },
               { key: 'items', label: 'Items', render: (r) => r.items.map((i) => `${i.item_name} ${i.qty}${i.unit}`).join(', ') },
               { key: 'requested_by', label: 'By' },
@@ -220,6 +234,7 @@ export default function Kitchen() {
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <b>{intentDoc.intent_no}</b> · {intentDoc.brand_name} · {intentDoc.kitchen_name} · {intentDoc.date} · by {intentDoc.requested_by}
+                    <div className="text-xs text-muted-foreground">Issuing from {intentDoc.source_location_name || 'Main Store'}</div>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" className="h-10" onClick={() => issueFull(intentDoc)} data-testid={`issue-full-${intentDoc.intent_no}`}>Full Issue</Button>
@@ -227,7 +242,7 @@ export default function Kitchen() {
                   </div>
                 </div>
                 <table className="w-full text-sm">
-                  <thead><tr className="border-b text-left text-xs uppercase tracking-widest text-muted-foreground"><th className="py-2">Item</th><th className="text-right">Requested</th><th className="text-right">Available (Store)</th><th className="text-right">Issued</th><th className="text-right">Balance</th><th className="text-right">Issue Qty</th><th></th></tr></thead>
+                  <thead><tr className="border-b text-left text-xs uppercase tracking-widest text-muted-foreground"><th className="py-2">Item</th><th className="text-right">Requested</th><th className="text-right">Available (Source)</th><th className="text-right">Issued</th><th className="text-right">Balance</th><th className="text-right">Issue Qty</th><th></th></tr></thead>
                   <tbody>
                     {intentDoc.items.map((l, i) => {
                       const key = `${intentDoc.id}-${i}`;

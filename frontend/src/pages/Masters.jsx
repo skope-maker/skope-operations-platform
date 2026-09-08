@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmDialog';
 
 const UNIT_CODES = ['KG', 'GM', 'LTR', 'ML', 'PCS', 'PKT', 'BOX', 'BTL'];
 const LOC_TYPES = [['store', 'Main / Dry Store'], ['base_kitchen', 'Base Kitchen'], ['normal_kitchen', 'Normal Kitchen'], ['rd', 'R&D']];
@@ -45,7 +46,7 @@ export default function Masters() {
     if (type === 'category') setForm(record ? { ...record, subcategories: (record.subcategories || []).join(', ') } : { name: '', subcategories: '' });
     if (type === 'unit') setForm(record || { name: '', code: '', family: 'weight', factor: 1 });
     if (type === 'supplier') setForm(record || { name: '', contact_person: '', phone: '', email: '', address: '', gst_number: '', payment_terms: '', active: true });
-    if (type === 'kitchen') setForm(record || { name: '', code: '', type: 'store', active: true });
+    if (type === 'kitchen') setForm(record || { name: '', code: '', type: 'store', parent_id: '', active: true });
   };
 
   const save = async () => {
@@ -64,12 +65,18 @@ export default function Masters() {
     } catch (e) { toast.error(errMsg(e)); }
   };
 
-  const remove = async (type, id) => {
-    if (!window.confirm('Delete this record? Linked records will block deletion.')) return;
+  const [confirm, confirmNode] = useConfirm();
+
+  const remove = async (type, id, label) => {
+    const ok = await confirm({
+      title: `Delete this ${type}?`,
+      description: `Are you sure you want to delete "${label}"? This action cannot be undone. If the record is used by other entries it will be archived instead, so history stays intact.`,
+    });
+    if (!ok) return;
     const path = { brand: '/brands', item: '/items', category: '/categories', unit: '/units', supplier: '/suppliers', kitchen: '/kitchens' }[type];
     try {
-      await api.delete(`${path}/${id}`);
-      toast.success('Deleted');
+      const r = await api.delete(`${path}/${id}`);
+      toast.success(r.data?.message || 'Deleted');
       load();
     } catch (e) { toast.error(errMsg(e)); }
   };
@@ -77,7 +84,7 @@ export default function Masters() {
   const editBtn = (type, r, tid) => (
     <div className="flex gap-2">
       <Button size="sm" variant="outline" onClick={() => openDialog(type, r)} data-testid={`edit-${tid}`}><Pencil className="h-4 w-4" /></Button>
-      <Button size="sm" variant="ghost" onClick={() => remove(type, r.id)} data-testid={`delete-${tid}`}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+      <Button size="sm" variant="ghost" onClick={() => remove(type, r.id, r.name || r.code)} data-testid={`delete-${tid}`}><Trash2 className="h-4 w-4 text-destructive" /></Button>
     </div>
   );
 
@@ -172,6 +179,7 @@ export default function Masters() {
               { key: 'code', label: 'Code' },
               { key: 'name', label: 'Location' },
               { key: 'type', label: 'Type', render: (r) => r.type.replace(/_/g, ' ') },
+              { key: 'parent_name', label: 'Supply Source', render: (r) => r.parent_name || (r.type === 'store' ? '—' : 'Main Store') },
               { key: 'active', label: 'Status', render: (r) => (r.active ? 'Active' : 'Inactive') },
               { key: 'actions', label: '', render: (r) => editBtn('kitchen', r, `kitchen-${r.code}`) },
             ]}
@@ -279,12 +287,30 @@ export default function Masters() {
                     <SelectContent>{LOC_TYPES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </Field>
+                <Field label="Supply Source (parent)">
+                  <Select value={f('parent_id') || 'none'} onValueChange={(v) => set('parent_id', v === 'none' ? '' : v)}>
+                    <SelectTrigger className="h-12" data-testid="kitchen-parent"><SelectValue placeholder="Main Store (default)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Main Store (default)</SelectItem>
+                      {kitchens.filter((k) => k.id !== dialog.record?.id).map((k) => (
+                        <SelectItem key={k.id} value={k.id}>{k.name} ({k.type.replace(/_/g, ' ')})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <div className="col-span-2 -mt-2 text-xs text-muted-foreground">
+                  Stock for this location is issued from its supply source. Chain example: Main Store → Base Kitchen → Normal Kitchen.
+                </div>
+                <div className="col-span-2">
+                  <label className="flex items-center gap-2 text-sm"><Switch checked={f('active') !== false} onCheckedChange={(v) => set('active', v)} data-testid="kitchen-active" /> Active</label>
+                </div>
               </>
             )}
           </div>
           <Button className="mt-4 h-12 w-full" onClick={save} data-testid="master-save-btn">Save</Button>
         </DialogContent>
       </Dialog>
+      {confirmNode}
     </div>
   );
 }

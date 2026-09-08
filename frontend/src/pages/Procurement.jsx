@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, errMsg, inr, fileToDataUrl, openDataUrl } from '../lib/api';
 import { DataTable, PageHeader, StatusBadge } from '../components/DataTable';
+import { ItemPicker } from '../components/ItemPicker';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -15,7 +16,6 @@ const emptyLine = () => ({ item_id: '', ordered_qty: 0, received_qty: 0, unit: '
 
 export default function Procurement() {
   const [receipts, setReceipts] = useState([]);
-  const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [form, setForm] = useState({ supplier_id: '', invoice_number: '', invoice_date: new Date().toISOString().slice(0, 10), receipt_date: new Date().toISOString().slice(0, 10), remarks: '', attachment: '', attachment_name: '', items: [emptyLine()] });
   const [approval, setApproval] = useState(null);
@@ -24,7 +24,6 @@ export default function Procurement() {
 
   const load = () => {
     api.get('/procurement/receipts').then((r) => setReceipts(r.data)).catch((e) => toast.error(errMsg(e)));
-    api.get('/items').then((r) => setItems(r.data.filter((i) => i.active))).catch(() => {});
     api.get('/suppliers').then((r) => setSuppliers(r.data.filter((s) => s.active))).catch(() => {});
   };
   useEffect(load, []);
@@ -116,10 +115,11 @@ export default function Procurement() {
                 <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
                   <div className="col-span-12 sm:col-span-3 space-y-1">
                     <Label className="text-xs">Item</Label>
-                    <Select value={l.item_id} onValueChange={(v) => { const it = items.find((x) => x.id === v); setLine(i, { item_id: v, unit: it?.purchase_unit || 'KG', rate: it?.rate || 0 }); }}>
-                      <SelectTrigger className="h-11" data-testid={`receipt-item-${i}`}><SelectValue placeholder="Select item" /></SelectTrigger>
-                      <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name} ({it.code})</SelectItem>)}</SelectContent>
-                    </Select>
+                    <ItemPicker
+                      testid={`receipt-item-${i}`}
+                      value={l.item_id}
+                      onSelect={(it) => setLine(i, { item_id: it?.id || '', unit: it?.purchase_unit || 'KG', rate: it?.rate || 0 })}
+                      placeholder="Search item name / code" />
                   </div>
                   {[['ordered_qty', 'Ordered'], ['received_qty', 'Received'], ['rate', 'Rate'], ['tax', 'Tax']].map(([k, lbl]) => (
                     <div key={k} className="col-span-3 sm:col-span-1 space-y-1">

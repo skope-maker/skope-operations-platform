@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from db import db, uid, now_iso, today_str, insert, clean, clean_list, next_no, audit
 from auth import get_current_user, require_roles
-from inventory import to_base, base_to_unit, post_txn, stock_base
+from inventory import to_base, base_to_unit, post_txn, stock_base, source_location
 
 router = APIRouter(prefix='/kitchen', tags=['kitchen'])
 
@@ -33,9 +33,14 @@ async def create_intent(body: IntentIn, user=Depends(require_roles('admin', 'che
         raise HTTPException(400, 'Issue type must be base_kitchen, normal_kitchen or rd')
     if not body.items:
         raise HTTPException(400, 'Add at least one item')
-    kitchen = await db.kitchens.find_one({'id': body.kitchen_id}, {'_id': 0})
+    kitchen = await db.kitchens.find_one({'id': body.kitchen_id, 'deleted': {'$ne': True}}, {'_id': 0})
     if not kitchen:
         raise HTTPException(400, 'Invalid kitchen')
+    if not kitchen.get('active', True):
+        raise HTTPException(400, 'Selected location is inactive')
+    src = await source_location(body.kitchen_id)
+    if not src:
+        raise HTTPException(400, 'No supply source configured for this kitchen. Set a Main Store in Masters → Kitchens.')
     items = []
     for it in body.items:
         if it.qty <= 0:
@@ -51,6 +56,7 @@ async def create_intent(body: IntentIn, user=Depends(require_roles('admin', 'che
         'id': uid(), 'intent_no': intent_no, 'date': body.date or today_str(),
         'brand_id': body.brand_id or None, 'kitchen_id': body.kitchen_id, 'kitchen_name': kitchen['name'],
         'issue_type': body.issue_type, 'priority': body.priority, 'remarks': body.remarks,
+        'source_location_id': src['id'], 'source_location_name': src['name'],
         'items': items, 'status': 'pending',
         'requested_by': user['name'], 'requested_by_id': user['id'], 'created_at': now_iso(),
     })
@@ -60,16 +66,23 @@ async def create_intent(body: IntentIn, user=Depends(require_roles('admin', 'che
 
 @router.get('/intents')
 async def list_intents(status: str = '', user=Depends(get_current_user)):
-    q = {'status': status} if status else {}
+    q = {'archived': {'$ne': True}}
+    if status:
+        q['status'] = status
     docs = clean_list(await db.kitchen_intents.find(q).sort('created_at', -1).to_list(1000))
     brands = {b['id']: b['name'] for b in await db.brands.find({}, {'_id': 0}).to_list(1000)}
-    store = await db.kitchens.find_one({'type': 'store'}, {'_id': 0})
+    src_cache = {}
     for d in docs:
         d['brand_name'] = brands.get(d.get('brand_id'), 'Shared')
+        kid = d['kitchen_id']
+        if kid not in src_cache:
+            src_cache[kid] = await source_location(kid)
+        src = src_cache[kid]
+        d['source_location_name'] = (src or {}).get('name', d.get('source_location_name', ''))
         for it in d['items']:
             item = await db.items.find_one({'id': it['item_id']}, {'_id': 0})
-            if store and item:
-                avail_base = await stock_base(it['item_id'], store['id'])
+            if src and item:
+                avail_base = await stock_base(it['item_id'], src['id'])
                 it['available'] = round(await base_to_unit(avail_base, item['consumption_unit']), 3)
                 it['issued'] = round(await base_to_unit(it['issued_base'], item['consumption_unit']), 3)
                 it['balance'] = round(it['qty'] - it['issued'], 3)
@@ -93,9 +106,9 @@ async def issue_intent(intent_id: str, body: IssueIn, user=Depends(require_roles
         raise HTTPException(404, 'Intent not found')
     if intent['status'] in ('issued', 'rejected'):
         raise HTTPException(400, f"Intent already {intent['status']}")
-    store = await db.kitchens.find_one({'type': 'store'}, {'_id': 0})
+    store = await source_location(intent['kitchen_id'])
     if not store:
-        raise HTTPException(400, 'No store location configured')
+        raise HTTPException(400, 'No supply source configured for this kitchen')
     issue_no = await next_no('issue', 'ISSUE')
     issue_lines = []
     for il in body.items:
@@ -138,7 +151,7 @@ async def reject_intent(intent_id: str, user=Depends(require_roles('admin', 'sto
 
 @router.get('/issues')
 async def list_issues(user=Depends(get_current_user)):
-    docs = clean_list(await db.stock_issues.find({}).sort('created_at', -1).to_list(1000))
+    docs = clean_list(await db.stock_issues.find({'archived': {'$ne': True}}).sort('created_at', -1).to_list(1000))
     locs = {l['id']: l['name'] for l in await db.kitchens.find({}, {'_id': 0}).to_list(1000)}
     for d in docs:
         d['from_location'] = locs.get(d['from_location_id'], '')
@@ -204,7 +217,7 @@ async def create_production(body: ProductionIn, user=Depends(require_roles('admi
 
 @router.get('/production')
 async def list_production(user=Depends(get_current_user)):
-    docs = clean_list(await db.production_batches.find({}).sort('created_at', -1).to_list(1000))
+    docs = clean_list(await db.production_batches.find({'archived': {'$ne': True}}).sort('created_at', -1).to_list(1000))
     locs = {l['id']: l['name'] for l in await db.kitchens.find({}, {'_id': 0}).to_list(1000)}
     for d in docs:
         d['kitchen_name'] = locs.get(d['kitchen_id'], '')
@@ -258,7 +271,7 @@ async def create_wastage(body: WastageIn, user=Depends(require_roles('admin', 'c
 
 @wastage_router.get('')
 async def list_wastage(user=Depends(get_current_user)):
-    docs = clean_list(await db.wastage.find({}, {'photo': 0}).sort('created_at', -1).to_list(1000))
+    docs = clean_list(await db.wastage.find({'archived': {'$ne': True}}, {'photo': 0}).sort('created_at', -1).to_list(1000))
     locs = {l['id']: l['name'] for l in await db.kitchens.find({}, {'_id': 0}).to_list(1000)}
     brands = {b['id']: b['name'] for b in await db.brands.find({}, {'_id': 0}).to_list(1000)}
     for d in docs:

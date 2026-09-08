@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Upload } from 'lucide-react';
+import { BulkUploadDialog } from '../components/BulkUpload';
 
 const UNITS = ['KG', 'GM', 'LTR', 'ML', 'PCS', 'PKT', 'BOX', 'BTL'];
 
@@ -206,6 +207,7 @@ export default function Recipes() {
   const [recipeDialog, setRecipeDialog] = useState({ open: false, recipe: null });
   const [subDialog, setSubDialog] = useState({ open: false, sub: null });
   const [versionView, setVersionView] = useState(null);
+  const [bulk, setBulk] = useState(null);
 
   const load = () => {
     api.get('/recipes').then((r) => setRecipes(r.data)).catch((e) => toast.error(errMsg(e)));
@@ -227,7 +229,10 @@ export default function Recipes() {
         </TabsList>
 
         <TabsContent value="recipes">
-          <div className="mb-4"><Button className="h-12" onClick={() => setRecipeDialog({ open: true, recipe: null })} data-testid="new-recipe-btn"><Plus className="mr-2 h-5 w-5" /> New Recipe</Button></div>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <Button className="h-12" onClick={() => setRecipeDialog({ open: true, recipe: null })} data-testid="new-recipe-btn"><Plus className="mr-2 h-5 w-5" /> New Recipe</Button>
+            <Button variant="outline" className="h-12" onClick={() => setBulk('recipe')} data-testid="bulk-recipe-btn"><Upload className="mr-2 h-5 w-5" /> Bulk Upload Recipes</Button>
+          </div>
           <DataTable testid="recipes-table" exportName="recipes.csv" searchKeys={['name', 'code', 'brand_name']}
             columns={[
               { key: 'code', label: 'Code' },
@@ -251,7 +256,10 @@ export default function Recipes() {
         </TabsContent>
 
         <TabsContent value="subrecipes">
-          <div className="mb-4"><Button className="h-12" onClick={() => setSubDialog({ open: true, sub: null })} data-testid="new-subrecipe-btn"><Plus className="mr-2 h-5 w-5" /> New Sub-Recipe</Button></div>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <Button className="h-12" onClick={() => setSubDialog({ open: true, sub: null })} data-testid="new-subrecipe-btn"><Plus className="mr-2 h-5 w-5" /> New Sub-Recipe</Button>
+            <Button variant="outline" className="h-12" onClick={() => setBulk('subrecipe')} data-testid="bulk-subrecipe-btn"><Upload className="mr-2 h-5 w-5" /> Bulk Upload Sub-Recipes</Button>
+          </div>
           <DataTable testid="subrecipes-table" exportName="subrecipes.csv" searchKeys={['name', 'code']}
             columns={[
               { key: 'code', label: 'Code' },
@@ -284,6 +292,8 @@ export default function Recipes() {
         onClose={() => setRecipeDialog({ open: false, recipe: null })} onSaved={load} />
       <SubRecipeDialog open={subDialog.open} sub={subDialog.sub} brands={brands} items={items}
         onClose={() => setSubDialog({ open: false, sub: null })} onSaved={load} />
+
+      {bulk && <BulkUploadDialog kind={bulk} open={!!bulk} onClose={() => setBulk(null)} onImported={load} />}
 
       <Dialog open={!!versionView} onOpenChange={() => setVersionView(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">

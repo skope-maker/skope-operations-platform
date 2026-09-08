@@ -130,7 +130,7 @@ class UserUpdate(BaseModel):
 
 @users_router.get('')
 async def list_users(user=Depends(require_roles('admin'))):
-    users = await db.users.find({}, {'_id': 0, 'password_hash': 0}).to_list(1000)
+    users = await db.users.find({'archived': {'$ne': True}}, {'_id': 0, 'password_hash': 0}).to_list(1000)
     return users
 
 

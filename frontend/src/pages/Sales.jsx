@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Upload } from 'lucide-react';
+import { BulkUploadDialog } from '../components/BulkUpload';
 
 const emptyLine = () => ({ recipe_id: '', qty_sold: 0, cancelled: 0, complimentary: 0 });
 
@@ -25,6 +26,7 @@ export default function Sales() {
   const [canOverride, setCanOverride] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [postingId, setPostingId] = useState(null);
+  const [bulk, setBulk] = useState(false);
 
   const load = () => {
     api.get('/sales').then((r) => setSales(r.data)).catch((e) => toast.error(errMsg(e)));
@@ -81,7 +83,10 @@ export default function Sales() {
     <div data-testid="sales-page">
       <PageHeader title="Daily Sales" subtitle="Draft → Review → Post. Posting deducts stock via recipes, sub-recipes and yields."
         testid="sales-title"
-        actions={<Button className="h-12" onClick={() => setOpen(true)} data-testid="new-sale-btn"><Plus className="mr-2 h-5 w-5" /> New Sales Entry</Button>} />
+        actions={<>
+          <Button variant="outline" className="h-12" onClick={() => setBulk(true)} data-testid="bulk-sales-btn"><Upload className="mr-2 h-5 w-5" /> Bulk Upload Sales</Button>
+          <Button className="h-12" onClick={() => setOpen(true)} data-testid="new-sale-btn"><Plus className="mr-2 h-5 w-5" /> New Sales Entry</Button>
+        </>} />
 
       <Tabs defaultValue="all">
         <TabsList className="mb-4">
@@ -118,8 +123,7 @@ export default function Sales() {
       </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Daily Sales Entry</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">          <DialogHeader><DialogTitle>New Daily Sales Entry</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label>Date</Label>
@@ -222,6 +226,8 @@ export default function Sales() {
           )}
         </DialogContent>
       </Dialog>
+
+      {bulk && <BulkUploadDialog kind="sales" open={bulk} onClose={() => setBulk(false)} onImported={load} />}
 
       <Dialog open={!!shortages} onOpenChange={() => setShortages(null)}>
         <DialogContent>
