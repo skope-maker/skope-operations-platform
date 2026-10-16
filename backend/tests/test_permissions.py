@@ -5,7 +5,7 @@ import pytest
 import requests
 from openpyxl import Workbook
 
-BASE = os.environ.get('REACT_APP_BACKEND_URL', 'https://recipe-stock-sync-2.preview.emergentagent.com').rstrip('/') + '/api'
+BASE = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001').rstrip('/') + '/api'
 
 
 def _login(email, pw):

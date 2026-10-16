@@ -1,19 +1,21 @@
 """Quick auth hardening checks (iteration 3): hash format, lockout, CORS."""
 import asyncio
 import os
+from pathlib import Path
 
 import pytest
 import requests
 from dotenv import dotenv_values
 
-frontend_env = dotenv_values("/app/frontend/.env")
+ROOT = Path(__file__).resolve().parents[2]  # repo root (== /app in the original container)
+frontend_env = dotenv_values(ROOT / "frontend" / ".env")
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or frontend_env["REACT_APP_BACKEND_URL"]).rstrip("/")
 ORIGIN = BASE_URL
 
 
 def test_password_hash_is_bcrypt():
     from motor.motor_asyncio import AsyncIOMotorClient
-    env = dotenv_values("/app/backend/.env")
+    env = {**dotenv_values(ROOT / "backend" / ".env"), **{k: v for k, v in os.environ.items() if k in ("MONGO_URL", "DB_NAME")}}
 
     async def go():
         cli = AsyncIOMotorClient(env["MONGO_URL"])

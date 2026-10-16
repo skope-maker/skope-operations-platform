@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+// Backend origin. VITE_BACKEND_URL is preferred; REACT_APP_BACKEND_URL is still
+// honoured so existing .env files keep working. When neither is set the app
+// calls same-origin `/api` (proxied to the backend by `vite dev`/`vite preview`).
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ?? import.meta.env.REACT_APP_BACKEND_URL ?? '';
+const API = `${BACKEND_URL.replace(/\/+$/, '')}/api`;
 
 export const api = axios.create({ baseURL: API });
 
@@ -65,4 +70,28 @@ export function openDataUrl(dataUrl) {
   } catch {
     toast.error('Unable to open attachment');
   }
+}
+
+// ---- Object storage helpers ----
+export async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await api.post('/files/upload', fd);
+  return r.data; // { id, path, name, content_type, size }
+}
+
+export function fileUrl(path) {
+  const token = localStorage.getItem('kitchen_token') || '';
+  return `${API}/files/${path}?auth=${encodeURIComponent(token)}`;
+}
+
+export function isImagePath(nameOrPath) {
+  return /\.(png|jpe?g|gif|webp)$/i.test(nameOrPath || '');
+}
+
+// Opens either a legacy base64 data URL or an object-storage path in a new tab.
+export function openAttachment(attachment) {
+  if (!attachment) return;
+  if (attachment.startsWith('data:')) return openDataUrl(attachment);
+  window.open(fileUrl(attachment), '_blank');
 }

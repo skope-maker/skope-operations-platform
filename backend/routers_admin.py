@@ -52,7 +52,7 @@ async def delete_record(kind: str, rid: str, user=Depends(require_roles('admin')
     await audit(user, f"Archived {spec['label'].lower()}",
                 f"{ref} had posted inventory impact, archived instead of deleted", ref)
     return {'ok': True, 'archived': True,
-            'message': f"{spec['label']} {ref} has posted inventory movements — archived (hidden) instead of deleted so stock history stays intact"}
+            'message': f"{spec['label']} {ref} has posted inventory movements, so it was archived (hidden) instead of deleted so stock history stays intact"}
 
 
 @router.delete('/users/{user_id}')
@@ -68,9 +68,9 @@ async def delete_user(user_id: str, user=Depends(require_roles('admin'))):
     if refs:
         await db.users.update_one({'id': user_id}, {'$set': {
             'active': False, 'archived': True, 'archived_at': now_iso()}})
-        await audit(user, 'Archived user', f"{target['email']} has {refs} audit records — deactivated & archived", user_id)
+        await audit(user, 'Archived user', f"{target['email']} has {refs} audit records, deactivated & archived", user_id)
         return {'ok': True, 'archived': True,
-                'message': f"{target['email']} has activity history — account deactivated and archived instead of deleted"}
+                'message': f"{target['email']} has activity history, so the account was deactivated and archived instead of deleted"}
     await db.users.delete_one({'id': user_id})
     await audit(user, 'Deleted user', target['email'], user_id)
     return {'ok': True, 'archived': False, 'message': f"User {target['email']} deleted"}

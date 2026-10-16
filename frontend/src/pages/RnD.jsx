@@ -28,7 +28,7 @@ export default function RnD() {
       if (!form.product.trim()) return toast.error('Product name is required');
       if (!lines.length) return toast.error('Add at least one ingredient');
       await api.post('/rd/trials', { ...form, brand_id: form.brand_id === 'shared' ? '' : form.brand_id, yield_qty: +form.yield_qty, items: lines });
-      toast.success('R&D trial recorded — ingredients consumed from R&D stock (not sales)');
+      toast.success('R&D trial recorded: ingredients consumed from R&D stock (not sales)');
       setForm({ date: new Date().toISOString().slice(0, 10), brand_id: '', product: '', yield_qty: 0, yield_unit: 'KG', result: '', remarks: '', items: [{ item_id: '', qty: 0, unit: 'KG' }] });
       load();
     } catch (e) { toast.error(errMsg(e)); }
@@ -37,7 +37,7 @@ export default function RnD() {
   return (
     <div data-testid="rnd-page">
       <PageHeader title="R&D Trials" subtitle="Trial consumption is tracked separately as R&D Consumption, never as sales consumption" testid="rnd-title" />
-      <div className="mb-6 max-w-4xl rounded-xl border bg-card p-6 space-y-4" data-testid="trial-form">
+      <div className="mb-6 max-w-4xl rounded-xl border bg-card p-4 sm:p-6 space-y-4" data-testid="trial-form">
         <h3 className="text-lg font-semibold">New Trial</h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="space-y-2"><Label>Date</Label><Input type="date" className="h-12" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="trial-date" /></div>

@@ -14,9 +14,9 @@ async def soft_or_hard_delete(coll: str, doc_id: str, refs: int, label: str, use
     if refs:
         await db[coll].update_one({'id': doc_id}, {'$set': {'deleted': True, 'active': False,
                                                            'status': 'inactive', 'archived_at': now_iso()}})
-        await audit(user, f'Archived {label}', f'{doc_id} is referenced by {refs} record(s) — archived instead of deleted', doc_id)
+        await audit(user, f'Archived {label}', f'{doc_id} is referenced by {refs} record(s), archived instead of deleted', doc_id)
         return {'ok': True, 'archived': True,
-                'message': f'{label} is used by {refs} existing record(s) — it has been archived and hidden from lists, history stays intact'}
+                'message': f'{label} is used by {refs} existing record(s), so it has been archived and hidden from lists, history stays intact'}
     await db[coll].delete_one({'id': doc_id})
     await audit(user, f'Deleted {label}', doc_id, doc_id)
     return {'ok': True, 'archived': False, 'message': f'{label} deleted'}

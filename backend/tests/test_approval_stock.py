@@ -1,11 +1,12 @@
 """Verify approval of a receipt posts stock into the store location (iteration 3)."""
 import os
+from pathlib import Path
 
 import pytest
 import requests
 from dotenv import dotenv_values
 
-frontend_env = dotenv_values("/app/frontend/.env")
+frontend_env = dotenv_values(Path(__file__).resolve().parents[2] / "frontend" / ".env")
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or frontend_env["REACT_APP_BACKEND_URL"]).rstrip("/")
 
 

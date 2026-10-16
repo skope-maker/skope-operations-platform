@@ -26,7 +26,7 @@ export default function Dashboard() {
   const a = data.alerts;
   return (
     <div data-testid="dashboard-page">
-      <PageHeader title="Dashboard" subtitle="Live operational overview — all figures computed from the transaction ledger" testid="dashboard-title" />
+      <PageHeader title="Dashboard" subtitle="Live operational overview. All figures are computed from the transaction ledger" testid="dashboard-title" />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
         <Kpi label="Today's Sales" value={inr(data.today_sales)} sub={`${fmt(data.today_orders)} orders`} testid="kpi-today-sales" />
@@ -38,7 +38,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-6">
-        <div className="rounded-xl border bg-card p-6 lg:col-span-3" data-testid="sales-trend-card">
+        <div className="rounded-xl border bg-card p-4 sm:p-6 lg:col-span-3" data-testid="sales-trend-card">
           <h3 className="mb-4 text-lg font-semibold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Daily Sales Trend (14 days)</h3>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={data.sales_trend}>
@@ -50,7 +50,7 @@ export default function Dashboard() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <div className="rounded-xl border bg-card p-6 lg:col-span-3" data-testid="brand-sales-card">
+        <div className="rounded-xl border bg-card p-4 sm:p-6 lg:col-span-3" data-testid="brand-sales-card">
           <h3 className="mb-4 text-lg font-semibold">Brand-wise Sales & Food Cost (MTD)</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={data.brand_wise}>
@@ -64,7 +64,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="rounded-xl border bg-card p-6 lg:col-span-2" data-testid="alerts-card">
+        <div className="rounded-xl border bg-card p-4 sm:p-6 lg:col-span-2" data-testid="alerts-card">
           <h3 className="mb-4 text-lg font-semibold flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-[#EAB308]" /> Alerts</h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between" data-testid="alert-procurement"><span className="flex items-center gap-2"><ClipboardCheck className="h-4 w-4" /> Pending procurement approvals</span><b className="tabular">{a.pending_procurement}</b></div>
@@ -74,7 +74,7 @@ export default function Dashboard() {
             {a.expiring_items.length > 0 && (
               <div className="rounded-lg border border-[#EAB308] bg-[#FEF9C3] p-3" data-testid="alert-expiring">
                 <p className="font-semibold text-[#854D0E]">Expiring within 7 days</p>
-                {a.expiring_items.map((e, i) => <p key={i} className="text-[#854D0E]">{e.item} · batch {e.batch || '—'} · {e.expiry}</p>)}
+                {a.expiring_items.map((e, i) => <p key={i} className="text-[#854D0E]">{e.item} · batch {e.batch || '-'} · {e.expiry}</p>)}
               </div>
             )}
             {a.high_variance_items.length > 0 && (
@@ -86,7 +86,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-6 lg:col-span-2" data-testid="inv-location-card">
+        <div className="rounded-xl border bg-card p-4 sm:p-6 lg:col-span-2" data-testid="inv-location-card">
           <h3 className="mb-4 text-lg font-semibold">Inventory by Location</h3>
           <div className="space-y-3">
             {data.inv_by_location.map((l) => (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, errMsg, inr, fileToDataUrl, openDataUrl } from '../lib/api';
+import { api, errMsg, inr, uploadFile, fileUrl, isImagePath, openAttachment } from '../lib/api';
 import { DataTable, PageHeader, StatusBadge } from '../components/DataTable';
 import { ItemPicker } from '../components/ItemPicker';
 import { Button } from '../components/ui/button';
@@ -33,10 +33,14 @@ export default function Procurement() {
   const onFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return toast.error('File must be under 2MB');
-    const dataUrl = await fileToDataUrl(file);
-    setForm((f) => ({ ...f, attachment: dataUrl, attachment_name: file.name }));
-    toast.success('Invoice attached');
+    if (file.size > 10 * 1024 * 1024) return toast.error('File must be under 10MB');
+    try {
+      const res = await uploadFile(file);
+      setForm((f) => ({ ...f, attachment: res.path, attachment_name: res.name }));
+      toast.success('Invoice uploaded');
+    } catch (err) {
+      toast.error(errMsg(err));
+    }
   };
 
   const submit = async () => {
@@ -45,7 +49,7 @@ export default function Procurement() {
       const lines = form.items.filter((l) => l.item_id && l.received_qty > 0).map((l) => ({ ...l, ordered_qty: +l.ordered_qty, received_qty: +l.received_qty, rate: +l.rate, tax: +l.tax }));
       if (!lines.length) return toast.error('Add at least one received item');
       await api.post('/procurement/receipts', { ...form, items: lines });
-      toast.success('Purchase receipt created — pending approval');
+      toast.success('Purchase receipt created: pending approval');
       setForm({ supplier_id: '', invoice_number: '', invoice_date: new Date().toISOString().slice(0, 10), receipt_date: new Date().toISOString().slice(0, 10), remarks: '', attachment: '', attachment_name: '', items: [emptyLine()] });
       load();
     } catch (e) {
@@ -67,7 +71,7 @@ export default function Procurement() {
         items: approvalLines.map((q, index) => ({ index, approved_qty: +q })),
         remarks: approvalRemarks,
       });
-      toast.success(`Receipt ${action === 'reject' ? 'rejected' : 'approved'} — approved quantities entered store stock`);
+      toast.success(`Receipt ${action === 'reject' ? 'rejected' : 'approved'}: approved quantities entered store stock`);
       setApproval(null);
       load();
     } catch (e) {
@@ -88,7 +92,7 @@ export default function Procurement() {
         </TabsList>
 
         <TabsContent value="new">
-          <div className="rounded-xl border bg-card p-6 space-y-5" data-testid="receipt-form">
+          <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-5" data-testid="receipt-form">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>Supplier</Label>
@@ -127,23 +131,23 @@ export default function Procurement() {
                       <Input type="number" min="0" className="h-11" value={l[k]} onChange={(e) => setLine(i, { [k]: e.target.value })} data-testid={`receipt-${k}-${i}`} />
                     </div>
                   ))}
-                  <div className="col-span-3 sm:col-span-1 space-y-1">
+                  <div className="col-span-4 sm:col-span-1 space-y-1">
                     <Label className="text-xs">Unit</Label>
                     <Select value={l.unit} onValueChange={(v) => setLine(i, { unit: v })}>
                       <SelectTrigger className="h-11" data-testid={`receipt-unit-${i}`}><SelectValue /></SelectTrigger>
                       <SelectContent>{['KG', 'GM', 'LTR', 'ML', 'PCS', 'PKT', 'BOX', 'BTL'].map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
+                  <div className="col-span-8 sm:col-span-2 space-y-1">
                     <Label className="text-xs">Batch #</Label>
                     <Input className="h-11" value={l.batch_number} onChange={(e) => setLine(i, { batch_number: e.target.value })} data-testid={`receipt-batch-${i}`} />
                   </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
+                  <div className="col-span-9 sm:col-span-2 space-y-1">
                     <Label className="text-xs">Expiry</Label>
                     <Input type="date" className="h-11" value={l.expiry_date} onChange={(e) => setLine(i, { expiry_date: e.target.value })} data-testid={`receipt-expiry-${i}`} />
                   </div>
-                  <div className="col-span-1">
-                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => setForm((f) => ({ ...f, items: f.items.filter((_, j) => j !== i) }))}><Trash2 className="h-4 w-4" /></Button>
+                  <div className="col-span-3 flex justify-end sm:col-span-1 sm:block">
+                    <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Remove item" onClick={() => setForm((f) => ({ ...f, items: f.items.filter((_, j) => j !== i) }))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -183,7 +187,7 @@ export default function Procurement() {
               { key: 'grand_total', label: 'Amount', numeric: true, render: (r) => inr(r.grand_total) },
               { key: 'status', label: 'Status', render: (r) => <StatusBadge status={r.status} /> },
               { key: 'created_by', label: 'Created By' },
-              { key: 'approved_by', label: 'Approved By', render: (r) => r.approved_by || '—' },
+              { key: 'approved_by', label: 'Approved By', render: (r) => r.approved_by || '-' },
               { key: 'view', label: '', render: (r) => <Button size="sm" variant="outline" onClick={() => openApproval(r.id)} data-testid={`view-${r.receipt_no}`}>View</Button> },
             ]}
             rows={receipts} />
@@ -192,21 +196,21 @@ export default function Procurement() {
 
       <Dialog open={!!approval} onOpenChange={() => setApproval(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{approval?.receipt_no} — Invoice {approval?.invoice_number} ({approval?.supplier_name})</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{approval?.receipt_no} · Invoice {approval?.invoice_number} ({approval?.supplier_name})</DialogTitle></DialogHeader>
           {approval && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm" onClick={() => openDataUrl(approval.attachment)} data-testid="view-invoice-btn">
+                <Button variant="outline" size="sm" onClick={() => openAttachment(approval.attachment)} data-testid="view-invoice-btn">
                   <FileText className="mr-2 h-4 w-4" /> View Invoice Attachment ({approval.attachment_name || 'file'})
                 </Button>
                 <StatusBadge status={approval.status} />
               </div>
-              {approval.attachment?.startsWith('data:image') ? (
+              {(approval.attachment?.startsWith('data:image') || isImagePath(approval.attachment_name)) ? (
                 <div className="flex justify-center rounded-lg border bg-secondary/30 p-2" data-testid="invoice-preview-wrap">
-                  <img src={approval.attachment} alt="Invoice attachment" className="max-h-80 w-auto rounded" data-testid="invoice-preview" />
+                  <img src={approval.attachment?.startsWith('data:') ? approval.attachment : fileUrl(approval.attachment)} alt="Invoice attachment" className="max-h-80 w-auto rounded" data-testid="invoice-preview" />
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">PDF invoice attached ({approval.attachment_name}) — click "View Invoice Attachment" to open it.</p>
+                <p className="text-sm text-muted-foreground">PDF invoice attached ({approval.attachment_name}). Click "View Invoice Attachment" to open it.</p>
               )}
               <table className="w-full text-sm" data-testid="approval-lines-table">
                 <thead>

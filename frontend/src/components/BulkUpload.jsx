@@ -47,7 +47,7 @@ export function BulkUploadDialog({ kind, open, onClose, onImported }) {
       const r = await api.post(`/bulk/${kind}/validate`, fd);
       setResult(r.data);
       if (r.data.failed_rows) toast.warning(`${r.data.failed_rows} row(s) have errors and will be skipped`);
-      else toast.success('File validated — no errors found');
+      else toast.success('File validated, no errors found');
     } catch (e) { toast.error(errMsg(e)); } finally { setBusy(''); }
   };
 
@@ -78,7 +78,7 @@ export function BulkUploadDialog({ kind, open, onClose, onImported }) {
   };
 
   const label = (g) => {
-    if (kind === 'sales') return `${g.date} · ${g.brand_name || '—'} · ${g.kitchen_name || '—'}`;
+    if (kind === 'sales') return `${g.date} · ${g.brand_name || '-'} · ${g.kitchen_name || '-'}`;
     return `${g.code || '(no code)'} · ${g.name || ''}`;
   };
 
@@ -186,12 +186,12 @@ export function BulkUploadDialog({ kind, open, onClose, onImported }) {
             <div className="max-h-64 space-y-1 overflow-y-auto text-sm">
               {summary.imported.map((i, x) => (
                 <div key={x} className="rounded border border-[#22C55E] bg-[#DCFCE7] px-3 py-1.5 text-[#166534]">
-                  <b>{i.ref}</b> — {i.label} · {i.detail}
+                  <b>{i.ref}</b>: {i.label} · {i.detail}
                 </div>
               ))}
               {summary.failed.map((f, x) => (
                 <div key={x} className="rounded border border-[#EF4444] bg-[#FEE2E2] px-3 py-1.5 text-[#991B1B]">
-                  <b>{f.ref || `Row ${f.row}`}</b> — {f.reason}
+                  <b>{f.ref || `Row ${f.row}`}</b>: {f.reason}
                 </div>
               ))}
             </div>

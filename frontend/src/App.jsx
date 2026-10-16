@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner';
+import { canAccess } from './lib/permissions';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -17,6 +18,7 @@ import Admin from './pages/Admin';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
+  const { pathname } = useLocation();
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center" data-testid="app-loading">
@@ -25,6 +27,8 @@ function Protected({ children }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  // Roles without access to a screen are sent home instead of seeing an empty, error-filled page.
+  if (!canAccess(user.role, pathname)) return <Navigate to="/" replace />;
   return <Layout>{children}</Layout>;
 }
 

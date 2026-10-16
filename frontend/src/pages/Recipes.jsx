@@ -40,7 +40,7 @@ function RecipeDialog({ open, onClose, onSaved, recipe, brands, items, subRecipe
       if (!payload.items.length) return toast.error('Add at least one ingredient');
       if (recipe) {
         await api.put(`/recipes/${recipe.id}`, payload);
-        toast.success('Recipe updated — new version created (old versions preserved)');
+        toast.success('Recipe updated: new version created (old versions preserved)');
       } else {
         await api.post('/recipes', payload);
         toast.success('Recipe created (v1)');
@@ -131,7 +131,7 @@ function SubRecipeDialog({ open, onClose, onSaved, sub, brands, items }) {
         toast.success('Sub-recipe updated');
       } else {
         await api.post('/subrecipes', payload);
-        toast.success('Sub-recipe created — yield calculated automatically');
+        toast.success('Sub-recipe created: yield calculated automatically');
       }
       onSaved();
       onClose();
@@ -222,7 +222,7 @@ export default function Recipes() {
     <div data-testid="recipes-page">
       <PageHeader title="Recipes" subtitle="Recipes, sub-recipes, yields and version-controlled costing" testid="recipes-title" />
       <Tabs defaultValue="recipes">
-        <TabsList className="mb-4 flex h-auto flex-wrap">
+        <TabsList className="mb-4">
           <TabsTrigger value="recipes" data-testid="tab-r-recipes">Recipe Master</TabsTrigger>
           <TabsTrigger value="subrecipes" data-testid="tab-r-subrecipes">Sub-Recipe Master</TabsTrigger>
           <TabsTrigger value="costing" data-testid="tab-r-costing">Recipe Costing</TabsTrigger>
@@ -297,7 +297,7 @@ export default function Recipes() {
 
       <Dialog open={!!versionView} onOpenChange={() => setVersionView(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{versionView?.name} — Version History</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{versionView?.name} · Version History</DialogTitle></DialogHeader>
           <div className="space-y-4" data-testid="version-history">
             {versionView?.versions?.map((v) => (
               <div key={v.id} className="rounded-lg border p-4">
@@ -306,7 +306,7 @@ export default function Recipes() {
                   <span className="text-sm text-muted-foreground">effective {v.effective_date} · by {v.created_by} · cost {inr(v.cost)}</span>
                 </div>
                 <ul className="list-inside list-disc text-sm">
-                  {v.items.map((l, i) => <li key={i}>{l.name} — {l.qty} {l.unit}{l.sub_recipe_id ? ' (sub-recipe)' : ''}</li>)}
+                  {v.items.map((l, i) => <li key={i}>{l.name}: {l.qty} {l.unit}{l.sub_recipe_id ? ' (sub-recipe)' : ''}</li>)}
                 </ul>
                 {v.notes && <p className="mt-1 text-sm text-muted-foreground">{v.notes}</p>}
               </div>

@@ -112,7 +112,7 @@ SPECS = {
 def _instructions_sheet(wb, kind):
     spec = SPECS[kind]
     ws = wb.create_sheet('Instructions')
-    ws['A1'] = f"{spec['label']} Bulk Upload — Instructions"
+    ws['A1'] = f"{spec['label']} Bulk Upload: Instructions"
     ws['A1'].font = Font(bold=True, size=14)
     rows = [
         [],

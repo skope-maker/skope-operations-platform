@@ -1,7 +1,7 @@
 import io, json, os, requests
 from openpyxl import load_workbook
 
-API = os.popen("grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d '=' -f2").read().strip()
+API = (os.environ.get("TEST_BASE") or os.environ.get("REACT_APP_BACKEND_URL") or "http://localhost:8001").rstrip("/")
 tok = requests.post(f"{API}/api/auth/login", json={"email": "chennakeshavaediga@gmail.com", "password": "admin123"}).json()["token"]
 H = {"Authorization": f"Bearer {tok}"}
 

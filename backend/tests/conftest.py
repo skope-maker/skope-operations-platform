@@ -6,14 +6,15 @@ import pytest
 import requests
 from dotenv import dotenv_values
 
-frontend_env = dotenv_values("/app/frontend/.env")
+ROOT = Path(__file__).resolve().parents[2]  # repo root (== /app in the original container)
+frontend_env = dotenv_values(ROOT / "frontend" / ".env")
 _base = os.environ.get("REACT_APP_BACKEND_URL") or frontend_env.get("REACT_APP_BACKEND_URL")
 if not _base:
     raise RuntimeError("REACT_APP_BACKEND_URL is missing")
 BASE_URL = _base.rstrip("/")
 API = f"{BASE_URL}/api"
 
-CREDS_FILE = Path("/app/memory/test_credentials.md")
+CREDS_FILE = Path(os.environ.get("TEST_CREDENTIALS_FILE") or ROOT / "memory" / "test_credentials.md")
 
 
 def _creds():

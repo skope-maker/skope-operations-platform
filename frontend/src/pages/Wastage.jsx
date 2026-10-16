@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, errMsg, inr, fileToDataUrl } from '../lib/api';
+import { api, errMsg, inr, uploadFile } from '../lib/api';
 import { DataTable, PageHeader } from '../components/DataTable';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -28,7 +28,7 @@ export default function Wastage() {
     try {
       if (!form.item_id || !form.kitchen_id || !form.reason) return toast.error('Item, kitchen and reason are required');
       await api.post('/wastage', { ...form, qty: +form.qty, brand_id: form.brand_id === 'shared' ? '' : form.brand_id });
-      toast.success('Wastage recorded — stock deducted via ledger');
+      toast.success('Wastage recorded: stock deducted via ledger');
       setForm({ ...form, item_id: '', qty: 0, reason: '', remarks: '', photo: '' });
       load();
     } catch (e) { toast.error(errMsg(e)); }
@@ -39,7 +39,7 @@ export default function Wastage() {
   return (
     <div data-testid="wastage-page">
       <PageHeader title="Wastage" subtitle={`Recorded wastage creates ledger transactions · Total value: ${inr(total)}`} testid="wastage-title" />
-      <div className="mb-6 max-w-4xl rounded-xl border bg-card p-6" data-testid="wastage-form">
+      <div className="mb-6 max-w-4xl rounded-xl border bg-card p-4 sm:p-6" data-testid="wastage-form">
         <h3 className="mb-4 text-lg font-semibold">Record Wastage</h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="space-y-2"><Label>Date</Label><Input type="date" className="h-12" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="wastage-date" /></div>
@@ -82,7 +82,7 @@ export default function Wastage() {
           <div className="space-y-2">
             <Label>Photo (optional)</Label>
             <Input type="file" accept="image/*" className="h-12 pt-2.5" data-testid="wastage-photo"
-              onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setForm({ ...form, photo: await fileToDataUrl(fl) }); }} />
+              onChange={async (e) => { const fl = e.target.files?.[0]; if (!fl) return; if (fl.size > 10 * 1024 * 1024) return toast.error('Photo must be under 10MB'); try { const res = await uploadFile(fl); setForm((f) => ({ ...f, photo: res.path })); toast.success('Photo uploaded'); } catch (err) { toast.error(errMsg(err)); } }} />
           </div>
           <div className="col-span-2 sm:col-span-4 space-y-2"><Label>Remarks</Label><Input className="h-12" value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} data-testid="wastage-remarks" /></div>
         </div>

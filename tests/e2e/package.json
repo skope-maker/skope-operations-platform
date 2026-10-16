@@ -1,0 +1,18 @@
+{
+  "name": "skope-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end tests for the Skope Operations Platform",
+  "scripts": {
+    "prepare-data": "python prepare.py",
+    "smoke": "node smoke.mjs",
+    "data-entry": "node data-entry.mjs",
+    "mobile": "node mobile-layout.mjs",
+    "roles": "node roles.mjs",
+    "business-flow": "node business-flow.mjs",
+    "admin-edge": "node admin-and-edge-flows.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
+  }
+}

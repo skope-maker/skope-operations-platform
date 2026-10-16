@@ -189,16 +189,16 @@ export default function Admin() {
             </div>
             <p className="max-w-xl text-xs text-muted-foreground">
               Admin-only. Entries that never touched inventory are deleted permanently. Entries that already moved stock
-              (posted sales, approved receipts, production, wastage) are archived — hidden from operational lists but kept for data integrity.
+              (posted sales, approved receipts, production, wastage) are archived (hidden from operational lists but kept for data integrity).
             </p>
           </div>
           <DataTable testid="cleanup-table" searchKeys={['ref_no', 'date', 'status', 'location_name']}
             columns={[
               { key: 'ref_no', label: 'Reference' },
-              { key: 'date', label: 'Date', render: (r) => r.date || r.receipt_date || '—' },
-              { key: 'location_name', label: 'Location', render: (r) => r.location_name || r.kitchen_name || '—' },
+              { key: 'date', label: 'Date', render: (r) => r.date || r.receipt_date || '-' },
+              { key: 'location_name', label: 'Location', render: (r) => r.location_name || r.kitchen_name || '-' },
               { key: 'status', label: 'Status', render: (r) => r.status || 'completed' },
-              { key: 'created_by', label: 'Created By', render: (r) => r.created_by || r.requested_by || r.chef || r.issued_by || '—' },
+              { key: 'created_by', label: 'Created By', render: (r) => r.created_by || r.requested_by || r.chef || r.issued_by || '-' },
               {
                 key: 'actions', label: '', render: (r) => (
                   <Button size="sm" variant="ghost" onClick={() => deleteRecord(r)} data-testid={`delete-record-${r.ref_no}`}>
@@ -219,8 +219,8 @@ export default function Admin() {
               { key: 'type_label', label: 'Type' },
               { key: 'ref', label: 'Reference' },
               { key: 'name', label: 'Name' },
-              { key: 'archived_at', label: 'Archived On', render: (r) => (r.archived_at ? new Date(r.archived_at).toLocaleString('en-IN') : '—') },
-              { key: 'archived_by', label: 'Archived By', render: (r) => r.archived_by || '—' },
+              { key: 'archived_at', label: 'Archived On', render: (r) => (r.archived_at ? new Date(r.archived_at).toLocaleString('en-IN') : '-') },
+              { key: 'archived_by', label: 'Archived By', render: (r) => r.archived_by || '-' },
               {
                 key: 'actions', label: '', render: (r) => (
                   <Button size="sm" variant="outline" onClick={() => restore(r)} data-testid={`restore-${r.kind}-${r.ref}`}>
@@ -233,7 +233,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="settings">
-          <div className="max-w-xl rounded-xl border bg-card p-6 space-y-4" data-testid="settings-form">
+          <div className="max-w-xl rounded-xl border bg-card p-4 sm:p-6 space-y-4" data-testid="settings-form">
             <div className="space-y-2">
               <Label>Company Name</Label>
               <Input className="h-12" disabled={!settingsLoaded} value={sform.company_name} onChange={(e) => setSform({ ...sform, company_name: e.target.value })} data-testid="settings-company" />

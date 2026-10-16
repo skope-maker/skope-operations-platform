@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Download, Search } from 'lucide-react';
@@ -16,10 +16,25 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
     );
   }, [rows, q, searchKeys]);
 
+  // Show a fade on the right edge while more columns are hidden off-screen.
+  const scrollRef = useRef(null);
+  const [moreRight, setMoreRight] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const update = () => setMoreRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => { el.removeEventListener('scroll', update); ro.disconnect(); };
+  }, [filtered.length, columns.length]);
+
   return (
     <div className="rounded-xl border bg-card" data-testid={testid}>
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
-        <div className="relative min-w-52 flex-1">
+        <div className="relative min-w-[10rem] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
@@ -36,12 +51,13 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
           </Button>
         )}
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-hidden rounded-b-xl">
+      <div ref={scrollRef} className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-secondary/50">
               {columns.map((c) => (
-                <th key={c.key} className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap ${c.numeric ? 'text-right' : ''}`}>
+                <th key={c.key} className={`px-3 py-2.5 text-left text-xs font-semibold uppercase sm:px-4 sm:py-3 tracking-widest text-muted-foreground whitespace-nowrap ${c.numeric ? 'text-right' : ''}`}>
                   {c.label}
                 </th>
               ))}
@@ -58,7 +74,7 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
             {filtered.map((r, i) => (
               <tr key={r.id || i} className="border-b last:border-0 hover:bg-secondary/30 transition-colors duration-150" data-testid={`${testid}-row-${i}`}>
                 {columns.map((c) => (
-                  <td key={c.key} className={`px-4 py-3 whitespace-nowrap ${c.numeric ? 'text-right tabular' : ''}`}>
+                  <td key={c.key} className={`px-3 py-2.5 sm:px-4 sm:py-3 whitespace-nowrap ${c.numeric ? 'text-right tabular' : ''}`}>
                     {c.render ? c.render(r, i) : String(r[c.key] ?? '')}
                   </td>
                 ))}
@@ -66,6 +82,8 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
             ))}
           </tbody>
         </table>
+      </div>
+      {moreRight && <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent" />}
       </div>
     </div>
   );
@@ -106,7 +124,7 @@ export function PageHeader({ title, subtitle, actions, testid }) {
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" data-testid={testid}>{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }

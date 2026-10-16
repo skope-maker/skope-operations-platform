@@ -23,6 +23,8 @@ const REPORTS = [
 export default function Reports() {
   const [report, setReport] = useState('sales');
   const [rows, setRows] = useState([]);
+  // Which report the loaded rows belong to, so stale rows are never rendered with another report's columns.
+  const [rowsReport, setRowsReport] = useState('sales');
   const [brands, setBrands] = useState([]);
   const [kitchens, setKitchens] = useState([]);
   const [items, setItems] = useState([]);
@@ -54,6 +56,7 @@ export default function Reports() {
       const url = report === 'ledger' ? `/inventory/ledger?${p}` : `/reports/${report}?${p}`;
       const r = await api.get(url);
       setRows(r.data);
+      setRowsReport(report);
     } catch (e) { toast.error(errMsg(e)); }
   };
 
@@ -80,7 +83,7 @@ export default function Reports() {
       case 'ledger':
         return [
           { key: 'txn_no', label: 'Txn #' }, { key: 'date', label: 'Date' }, { key: 'item_name', label: 'Item' },
-          { key: 'txn_type', label: 'Type', render: (r) => r.txn_type.replace(/_/g, ' ') },
+          { key: 'txn_type', label: 'Type', render: (r) => (r.txn_type || '').replace(/_/g, ' ') },
           { key: 'display_qty', label: 'Qty', numeric: true, render: (r) => `${r.display_qty} ${r.display_unit}` },
           { key: 'from_location', label: 'From' }, { key: 'to_location', label: 'To' },
           { key: 'brand_name', label: 'Brand' }, { key: 'reference_no', label: 'Reference' }, { key: 'created_by', label: 'By' },
@@ -190,7 +193,7 @@ export default function Reports() {
         )}
         <Button className="h-12 px-8" onClick={run} data-testid="report-run-btn">Run Report</Button>
       </div>
-      <DataTable testid="report-table" exportName={`${report}-report.csv`} columns={columnsFor()} rows={rows} />
+      <DataTable testid="report-table" exportName={`${report}-report.csv`} columns={columnsFor()} rows={rowsReport === report ? rows : []} />
     </div>
   );
 }

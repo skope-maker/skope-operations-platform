@@ -62,7 +62,7 @@ export default function Sales() {
         if (override) toast.error('Only Admin / Store Manager can override shortages. This attempt was not posted.');
         return;
       }
-      toast.success('Sales posted — inventory consumed');
+      toast.success('Sales posted: inventory consumed');
       setShortages(null);
       setOverrideReason('');
       load();
@@ -184,7 +184,7 @@ export default function Sales() {
 
       <Dialog open={!!detail} onOpenChange={() => setDetail(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{detail?.sale_no} — {detail?.brand_name} — {detail?.date}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{detail?.sale_no} · {detail?.brand_name} · {detail?.date}</DialogTitle></DialogHeader>
           {detail && (
             <div className="space-y-6">
               <div>
@@ -235,7 +235,7 @@ export default function Sales() {
           <div className="space-y-3" data-testid="shortage-dialog">
             {shortages?.map((s, i) => (
               <div key={i} className="rounded-lg border border-[#EF4444] bg-[#FEE2E2] p-3 text-sm text-[#991B1B]">
-                <b>{s.item_name}</b> — Available: {s.available} {s.unit} · Required: {s.required} {s.unit} · Shortage: {s.shortage} {s.unit}
+                <b>{s.item_name}</b>: Available: {s.available} {s.unit} · Required: {s.required} {s.unit} · Shortage: {s.shortage} {s.unit}
               </div>
             ))}
             <p className="text-sm text-muted-foreground">Only Admin / Store Manager can override. All overrides are recorded in audit logs.</p>

@@ -68,7 +68,7 @@ export default function Kitchen() {
     if (!qty) return toast.error('Enter quantity to issue');
     try {
       await api.post(`/kitchen/intents/${intentDoc.id}/issue`, { items: [{ index, qty }] });
-      toast.success('Stock issued — store deducted, kitchen credited');
+      toast.success('Stock issued: store deducted, kitchen credited');
       load();
     } catch (e) { toast.error(errMsg(e)); }
   };
@@ -85,7 +85,7 @@ export default function Kitchen() {
   const submitProduction = async () => {
     try {
       await api.post('/kitchen/production', { ...prod, produced_qty: +prod.produced_qty });
-      toast.success('Production batch recorded — raw materials consumed, sub-recipe stock added');
+      toast.success('Production batch recorded: raw materials consumed, sub-recipe stock added');
       setProd({ sub_recipe_id: '', brand_id: '', kitchen_id: '', produced_qty: 0, unit: 'KG', remarks: '' });
       load();
     } catch (e) { toast.error(errMsg(e)); }
@@ -106,7 +106,7 @@ export default function Kitchen() {
     try {
       const items = Object.entries(physical).map(([item_id, v]) => ({ item_id, physical_qty: +v }));
       await api.post('/closing', { date: closingDate, location_id: closingLoc, items });
-      toast.success('Closing submitted — variance calculated');
+      toast.success('Closing submitted: variance calculated');
       loadPreview();
       load();
     } catch (e) { toast.error(errMsg(e)); }
@@ -125,7 +125,7 @@ export default function Kitchen() {
     if (!reopenReason.trim()) return toast.error('Enter reopen reason');
     try {
       await api.post('/closing/reopen', { date, location_id, reason: reopenReason });
-      toast.success('Day reopened — audit logged');
+      toast.success('Day reopened: audit logged');
       setReopenReason('');
       load();
     } catch (e) { toast.error(errMsg(e)); }
@@ -137,7 +137,7 @@ export default function Kitchen() {
     <div data-testid="kitchen-page">
       <PageHeader title="Kitchen Operations" subtitle="Intents → Issues → Production → Daily Closing" testid="kitchen-title" />
       <Tabs defaultValue="intents">
-        <TabsList className="mb-4 flex h-auto flex-wrap">
+        <TabsList className="mb-4">
           <TabsTrigger value="intents" data-testid="tab-k-intents">Kitchen Intent</TabsTrigger>
           <TabsTrigger value="issues" data-testid="tab-k-issues">Store Issues {pendingIntents.length > 0 && <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">{pendingIntents.length}</span>}</TabsTrigger>
           <TabsTrigger value="production" data-testid="tab-k-production">Sub-Recipe Production</TabsTrigger>
@@ -145,7 +145,7 @@ export default function Kitchen() {
         </TabsList>
 
         <TabsContent value="intents">
-          <div className="mb-6 max-w-4xl rounded-xl border bg-card p-6 space-y-4" data-testid="intent-form">
+          <div className="mb-6 max-w-4xl rounded-xl border bg-card p-4 sm:p-6 space-y-4" data-testid="intent-form">
             <h3 className="text-lg font-semibold">Raise Kitchen Intent</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <div className="space-y-2"><Label>Date</Label><Input type="date" className="h-12" value={intent.date} onChange={(e) => setIntent({ ...intent, date: e.target.value })} data-testid="intent-date" /></div>
@@ -228,9 +228,9 @@ export default function Kitchen() {
 
         <TabsContent value="issues">
           <div className="mb-6 space-y-4">
-            {pendingIntents.length === 0 && <p className="rounded-xl border bg-card p-6 text-muted-foreground" data-testid="no-pending-intents">No pending kitchen intents.</p>}
+            {pendingIntents.length === 0 && <p className="rounded-xl border bg-card p-4 sm:p-6 text-muted-foreground" data-testid="no-pending-intents">No pending kitchen intents.</p>}
             {pendingIntents.map((intentDoc) => (
-              <div key={intentDoc.id} className="rounded-xl border bg-card p-6" data-testid={`intent-card-${intentDoc.intent_no}`}>
+              <div key={intentDoc.id} className="rounded-xl border bg-card p-4 sm:p-6" data-testid={`intent-card-${intentDoc.intent_no}`}>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <b>{intentDoc.intent_no}</b> · {intentDoc.brand_name} · {intentDoc.kitchen_name} · {intentDoc.date} · by {intentDoc.requested_by}
@@ -277,7 +277,7 @@ export default function Kitchen() {
         </TabsContent>
 
         <TabsContent value="production">
-          <div className="mb-6 max-w-3xl rounded-xl border bg-card p-6 space-y-4" data-testid="production-form">
+          <div className="mb-6 max-w-3xl rounded-xl border bg-card p-4 sm:p-6 space-y-4" data-testid="production-form">
             <h3 className="text-lg font-semibold">Create Production Batch</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -307,7 +307,7 @@ export default function Kitchen() {
               <div className="rounded-lg bg-secondary p-4 text-sm" data-testid="prod-recipe-preview">
                 <b>Ingredients (per batch yielding {subRecipes.find((s) => s.id === prod.sub_recipe_id)?.yield_qty} {subRecipes.find((s) => s.id === prod.sub_recipe_id)?.yield_unit}):</b>
                 <ul className="mt-1 list-inside list-disc">
-                  {subRecipes.find((s) => s.id === prod.sub_recipe_id)?.items.map((i, idx) => <li key={idx}>{i.item_name} — {i.qty} {i.unit}</li>)}
+                  {subRecipes.find((s) => s.id === prod.sub_recipe_id)?.items.map((i, idx) => <li key={idx}>{i.item_name}: {i.qty} {i.unit}</li>)}
                 </ul>
               </div>
             )}
@@ -330,7 +330,7 @@ export default function Kitchen() {
         </TabsContent>
 
         <TabsContent value="closing">
-          <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-card p-6" data-testid="closing-controls">
+          <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 sm:p-6" data-testid="closing-controls">
             <div className="space-y-2"><Label>Date</Label><Input type="date" className="h-12" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} data-testid="closing-date" /></div>
             <div className="space-y-2">
               <Label>Location</Label>
@@ -372,7 +372,7 @@ export default function Kitchen() {
                             <Input type="number" className="ml-auto h-10 w-24 text-right" value={phys ?? ''} onChange={(e) => setPhysical({ ...physical, [r.item_id]: e.target.value })} data-testid={`physical-${r.item_code}`} />
                           </td>
                           <td className={`px-2 py-2 text-right font-semibold tabular ${vpct !== null && Math.abs(vpct) > (preview.tolerance || 2) ? 'text-[#991B1B]' : 'text-[#166534]'}`}>
-                            {variance !== null ? `${variance} (${vpct}%)` : '—'}
+                            {variance !== null ? `${variance} (${vpct}%)` : '-'}
                           </td>
                         </tr>
                       );
@@ -396,7 +396,7 @@ export default function Kitchen() {
               { key: 'items', label: 'Items Closed', numeric: true, render: (r) => r.items.length },
               { key: 'status', label: 'Status', render: (r) => <StatusBadge status={r.status} /> },
               { key: 'created_by', label: 'Submitted By' },
-              { key: 'approved_by', label: 'Approved By', render: (r) => r.approved_by || '—' },
+              { key: 'approved_by', label: 'Approved By', render: (r) => r.approved_by || '-' },
               {
                 key: 'actions', label: 'Actions', render: (r) => (
                   <div className="flex items-center gap-2">

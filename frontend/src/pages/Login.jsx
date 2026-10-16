@@ -68,7 +68,7 @@ export default function Login() {
             Scaling kitchen <span className="text-[#35A9E1]">operations</span>
           </h1>
           <p className="mt-4 max-w-md text-base text-slate-400">
-            One system for sales, procurement, recipes, sub-recipes, yields, stock and variance — across every brand and kitchen.
+            One system for sales, procurement, recipes, sub-recipes, yields, stock and variance, across every brand and kitchen.
           </p>
           <div className="mt-8 space-y-4">
             {FEATURES.map((f, i) => (
@@ -122,7 +122,7 @@ export default function Login() {
             </form>
 
             <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid="demo-credentials-box">
-              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-slate-400">User Logins — tap to fill</p>
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-slate-400">User Logins (tap to fill)</p>
               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                 {DEMO_USERS.map((u) => (
                   <button key={u.email} type="button" onClick={() => fill(u)} data-testid={`fill-${u.email}`}

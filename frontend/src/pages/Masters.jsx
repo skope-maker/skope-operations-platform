@@ -97,7 +97,7 @@ export default function Masters() {
     <div data-testid="masters-page">
       <PageHeader title="Masters" subtitle="Brands (companies), items, categories, units, suppliers and kitchen locations" testid="masters-title" />
       <Tabs defaultValue="brands">
-        <TabsList className="mb-4 flex h-auto flex-wrap">
+        <TabsList className="mb-4">
           {[['brands', 'Brands'], ['items', 'Items'], ['categories', 'Categories'], ['units', 'Units'], ['suppliers', 'Suppliers'], ['kitchens', 'Kitchens']].map(([v, l]) => (
             <TabsTrigger key={v} value={v} data-testid={`tab-m-${v}`}>{l}</TabsTrigger>
           ))}
@@ -184,7 +184,7 @@ export default function Masters() {
               { key: 'code', label: 'Code' },
               { key: 'name', label: 'Location' },
               { key: 'type', label: 'Type', render: (r) => r.type.replace(/_/g, ' ') },
-              { key: 'parent_name', label: 'Supply Source', render: (r) => r.parent_name || (r.type === 'store' ? '—' : 'Main Store') },
+              { key: 'parent_name', label: 'Supply Source', render: (r) => r.parent_name || (r.type === 'store' ? '-' : 'Main Store') },
               { key: 'active', label: 'Status', render: (r) => (r.active ? 'Active' : 'Inactive') },
               { key: 'actions', label: '', render: (r) => editBtn('kitchen', r, `kitchen-${r.code}`) },
             ]}
@@ -195,7 +195,7 @@ export default function Masters() {
       <Dialog open={!!dialog.type} onOpenChange={() => setDialog({ type: null, record: null })}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="capitalize">{dialog.record ? 'Edit' : 'New'} {dialog.type}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4" data-testid="master-form">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" data-testid="master-form">
             {dialog.type === 'brand' && (
               <>
                 <Field label="Brand Name"><Input className="h-12" value={f('name')} onChange={(e) => set('name', e.target.value)} data-testid="brand-name" /></Field>
@@ -207,7 +207,7 @@ export default function Masters() {
                     <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
                   </Select>
                 </Field>
-                <div className="col-span-2"><Field label="Description"><Input className="h-12" value={f('description')} onChange={(e) => set('description', e.target.value)} data-testid="brand-description" /></Field></div>
+                <div className="sm:col-span-2"><Field label="Description"><Input className="h-12" value={f('description')} onChange={(e) => set('description', e.target.value)} data-testid="brand-description" /></Field></div>
               </>
             )}
             {dialog.type === 'item' && (
@@ -244,7 +244,7 @@ export default function Masters() {
                   </Select>
                 </Field>
                 <Field label="Storage Location"><Input className="h-12" value={f('storage_location')} onChange={(e) => set('storage_location', e.target.value)} data-testid="item-storage" /></Field>
-                <div className="col-span-2 flex flex-wrap gap-6 pt-2">
+                <div className="sm:col-span-2 flex flex-wrap gap-6 pt-2">
                   <label className="flex items-center gap-2 text-sm"><Switch checked={!!f('batch_tracking')} onCheckedChange={(v) => set('batch_tracking', v)} data-testid="item-batch" /> Batch Tracking</label>
                   <label className="flex items-center gap-2 text-sm"><Switch checked={!!f('expiry_tracking')} onCheckedChange={(v) => set('expiry_tracking', v)} data-testid="item-expiry" /> Expiry Tracking</label>
                   <label className="flex items-center gap-2 text-sm"><Switch checked={!!f('is_sub_recipe')} onCheckedChange={(v) => set('is_sub_recipe', v)} data-testid="item-is-sub" /> Prepared (Sub-Recipe Output)</label>
@@ -279,7 +279,7 @@ export default function Masters() {
                 <Field label="Email"><Input className="h-12" value={f('email')} onChange={(e) => set('email', e.target.value)} data-testid="supplier-email" /></Field>
                 <Field label="GST Number"><Input className="h-12" value={f('gst_number')} onChange={(e) => set('gst_number', e.target.value)} data-testid="supplier-gst" /></Field>
                 <Field label="Payment Terms"><Input className="h-12" value={f('payment_terms')} onChange={(e) => set('payment_terms', e.target.value)} data-testid="supplier-terms" /></Field>
-                <div className="col-span-2"><Field label="Address"><Input className="h-12" value={f('address')} onChange={(e) => set('address', e.target.value)} data-testid="supplier-address" /></Field></div>
+                <div className="sm:col-span-2"><Field label="Address"><Input className="h-12" value={f('address')} onChange={(e) => set('address', e.target.value)} data-testid="supplier-address" /></Field></div>
               </>
             )}
             {dialog.type === 'kitchen' && (
@@ -303,10 +303,10 @@ export default function Masters() {
                     </SelectContent>
                   </Select>
                 </Field>
-                <div className="col-span-2 -mt-2 text-xs text-muted-foreground">
+                <div className="sm:col-span-2 -mt-2 text-xs text-muted-foreground">
                   Stock for this location is issued from its supply source. Chain example: Main Store → Base Kitchen → Normal Kitchen.
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="flex items-center gap-2 text-sm"><Switch checked={f('active') !== false} onCheckedChange={(v) => set('active', v)} data-testid="kitchen-active" /> Active</label>
                 </div>
               </>

@@ -16,6 +16,8 @@ from routers_closing import router as closing_router
 from routers_reports import router as reports_router
 from routers_bulk import router as bulk_router
 from routers_admin import router as admin_router
+from routers_files import router as files_router
+from storage import init_storage
 from seed import seed
 
 app = FastAPI(title='Kitchen Inventory & Recipe Management')
@@ -35,6 +37,7 @@ app.include_router(closing_router, prefix=API)
 app.include_router(reports_router, prefix=API)
 app.include_router(bulk_router, prefix=API)
 app.include_router(admin_router, prefix=API)
+app.include_router(files_router, prefix=API)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +55,11 @@ logger = logging.getLogger(__name__)
 async def startup():
     await seed()
     logger.info('Seed complete')
+    try:
+        await init_storage()
+        logger.info('Object storage initialized')
+    except Exception as e:
+        logger.error(f'Object storage init failed: {e}')
 
 
 @app.on_event('shutdown')

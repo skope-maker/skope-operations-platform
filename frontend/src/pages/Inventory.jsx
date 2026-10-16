@@ -81,7 +81,7 @@ export default function Inventory() {
       const lines = transfer.items.filter((l) => l.item_id && +l.qty > 0).map((l) => ({ ...l, qty: +l.qty }));
       if (!lines.length) return toast.error('Add at least one item');
       await api.post('/inventory/transfer', { ...transfer, items: lines });
-      toast.success('Stock transferred — ledger updated (Transfer Out + Transfer In)');
+      toast.success('Stock transferred: ledger updated (Transfer Out + Transfer In)');
       setTransfer({ from_location_id: '', to_location_id: '', brand_id: '', remarks: '', items: [{ item_id: '', qty: 0, unit: 'KG' }] });
     } catch (e) {
       toast.error(errMsg(e));
@@ -100,9 +100,9 @@ export default function Inventory() {
 
   return (
     <div data-testid="inventory-page">
-      <PageHeader title="Inventory" subtitle="Real-time stock per location — always calculated from the immutable transaction ledger" testid="inventory-title" />
+      <PageHeader title="Inventory" subtitle="Real-time stock per location, always calculated from the immutable transaction ledger" testid="inventory-title" />
       <Tabs defaultValue="store">
-        <TabsList className="mb-4 flex flex-wrap h-auto">
+        <TabsList className="mb-4">
           <TabsTrigger value="store" data-testid="tab-inv-store">Store Stock</TabsTrigger>
           <TabsTrigger value="base" data-testid="tab-inv-base">Base Kitchen</TabsTrigger>
           <TabsTrigger value="normal" data-testid="tab-inv-normal">Normal Kitchen</TabsTrigger>
@@ -154,7 +154,7 @@ export default function Inventory() {
         </TabsContent>
 
         <TabsContent value="transfer">
-          <div className="max-w-3xl rounded-xl border bg-card p-6 space-y-4" data-testid="transfer-form">
+          <div className="max-w-3xl rounded-xl border bg-card p-4 sm:p-6 space-y-4" data-testid="transfer-form">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>From Location</Label>
@@ -210,7 +210,7 @@ export default function Inventory() {
         </TabsContent>
 
         <TabsContent value="adjustment">
-          <div className="max-w-xl rounded-xl border bg-card p-6 space-y-4" data-testid="adjustment-form">
+          <div className="max-w-xl rounded-xl border bg-card p-4 sm:p-6 space-y-4" data-testid="adjustment-form">
             <div className="space-y-2">
               <Label>Location</Label>
               <Select value={adjustment.location_id} onValueChange={(v) => setAdjustment({ ...adjustment, location_id: v })}>
@@ -225,7 +225,7 @@ export default function Inventory() {
                 <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>Direction</Label>
                 <Select value={adjustment.direction} onValueChange={(v) => setAdjustment({ ...adjustment, direction: v })}>
@@ -249,7 +249,7 @@ export default function Inventory() {
 
         <TabsContent value="reorder">
           <div className="mb-4 rounded-xl border border-[#EAB308] bg-[#FEF9C3] p-4 text-sm text-[#854D0E]" data-testid="reorder-info">
-            Daily reorder list — items at or below their reorder / minimum level per kitchen. <b>Suggested Order</b> tops each item back up to its max (par) level.
+            Daily reorder list: items at or below their reorder / minimum level per kitchen. <b>Suggested Order</b> tops each item back up to its max (par) level.
           </div>
           <DataTable testid="reorder-table" exportName="reorder-list.csv" searchKeys={['item_name', 'item_code', 'category', 'location']}
             filters={
@@ -287,7 +287,7 @@ export default function Inventory() {
               { key: 'received_date', label: 'Received' },
               { key: 'expiry_date', label: 'Expiry', render: (r) => {
                   const soon = r.expiry_date && r.expiry_date <= new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-                  return <span className={soon ? 'rounded bg-[#FEE2E2] px-2 py-0.5 font-semibold text-[#991B1B]' : ''}>{r.expiry_date || '—'}</span>;
+                  return <span className={soon ? 'rounded bg-[#FEE2E2] px-2 py-0.5 font-semibold text-[#991B1B]' : ''}>{r.expiry_date || '-'}</span>;
                 } },
               { key: 'remaining', label: 'Available (FIFO)', numeric: true, render: (r) => `${r.remaining} ${r.unit}` },
             ]}

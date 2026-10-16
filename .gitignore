@@ -30,8 +30,12 @@ next-env.d.ts
 dist/
 dist
 
-# Environment files (comprehensive coverage)
-
+# Environment files (comprehensive coverage). These hold secrets: never commit them.
+# Only the *.example templates are tracked.
+.env
+.env.*
+!.env.example
+*.env
 *token.json*
 *credentials.json*
 
@@ -86,3 +90,11 @@ frontend/node_modules/.cache/default-development/3.pack
 frontend/node_modules/.cache/default-development/0.pack
 frontend/node_modules/.cache/default-development/5.pack
 frontend/node_modules/.cache/default-development/10.pack
+
+# Local file uploads (storage.py local backend)
+backend/uploads/
+
+# Browser e2e test dependencies
+tests/e2e/node_modules/
+tests/e2e/package-lock.json
+tests/e2e/out/
