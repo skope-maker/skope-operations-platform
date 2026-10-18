@@ -48,9 +48,23 @@ Docker is not installed on this computer, so the image itself was not built. Ins
 | Phone layout audit | No overflow |
 A first run of the business flow failed (22 checks) because that test database already held a completed earlier run; after dropping and recreating the database the same flow passed 91/91. The test databases were dropped afterwards.
 
+### First live deployment (same day)
+Deployed from the Blueprint on Render's free plan, with the database on the owner's existing MongoDB Atlas free cluster
+(Cluster0, resumed after auto-pause) using a new user `skope_app` limited to `readWrite` on `skope_operations`. The cluster already
+holds another application's data in a database called `test`; this app never touches it.
+Result: the Docker image built (Python 3.14 base image, Node 22 build stage), the service went live, and Render's health check on
+`/api` returns 200. Read-only checks against the public address:
+| Check | Result |
+|---|---|
+| `GET /api` | 200, about 1 second |
+| `GET /`, `GET /inventory` (deep link) | 200, the app |
+| `GET /api/nope` | 404 JSON |
+| Shipped JavaScript contains `admin123`, `demo123`, the credentials box, or `kitchen.com` | None of them |
+| `GET /api/items`, `GET /api/users` without logging in | 401 |
+Render shows a notice that the free instance spins down with inactivity, which can delay requests by 50 seconds or more.
+
 ### Not tested
-- Building the Docker image (Python 3.14 base image, Node 22 build stage).
-- The real Render and Atlas deployment (needs your accounts).
+- Signing in on the live address and using it as each role (the owner and team do this; `tests/e2e` scripts can also be pointed at it).
 - The Cloudflare tunnel option in `DEPLOY.md`.
 
 ### Known limits of the free hosting (details in DEPLOY.md)
