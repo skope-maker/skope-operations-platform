@@ -57,6 +57,11 @@ node mobile-layout.mjs http://localhost:5199 ./out 375 812
 
 On PowerShell set the variables first, for example `$env:DB_NAME='skope_e2e'`.
 
+**Against the single-address build.** The same scripts also work against the app served by the backend alone
+(the setup used for hosting, see `DEPLOY.md`): build the frontend with `VITE_SHOW_DEMO_LOGINS=false VITE_BACKEND_URL=`,
+start the backend with `SEED_DEMO_USERS=true` and `DEMO_PASSWORD=demo123`, run `prepare.py` against it, and pass the
+backend's own address (for example `http://localhost:8013`) as the first argument. Skip step 2 (no Vite dev server needed).
+
 Run `business-flow.mjs` before `admin-and-edge-flows.mjs` (the second one reopens the day
 the first one closed). To run `business-flow.mjs` again, drop the database and restart
 the backend. Override the admin login with `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD`.

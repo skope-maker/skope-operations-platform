@@ -1,7 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+import os
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import logging
 
@@ -19,6 +24,10 @@ from routers_admin import router as admin_router
 from routers_files import router as files_router
 from storage import init_storage
 from seed import seed
+
+# Comma-separated list of allowed website origins. '*' (any) is the default for local development;
+# on a public deployment set CORS_ORIGINS to your own address.
+CORS_ORIGINS = [o.strip() for o in os.environ.get('CORS_ORIGINS', '*').split(',') if o.strip()] or ['*']
 
 app = FastAPI(title='Kitchen Inventory & Recipe Management')
 API = '/api'
@@ -42,7 +51,7 @@ app.include_router(files_router, prefix=API)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=False,
-    allow_origins=['*'],
+    allow_origins=CORS_ORIGINS,
     allow_methods=['*'],
     allow_headers=['*'],
 )
@@ -70,3 +79,21 @@ async def shutdown_db_client():
 @app.get('/api')
 async def root():
     return {'message': 'Kitchen Inventory API running'}
+
+
+# Serve the built React app from the same address as the API (single-service deployment).
+# Used when frontend/build exists (or FRONTEND_DIST points at it); local development
+# keeps using the Vite dev server and never needs this.
+FRONTEND_DIST = Path(os.environ.get('FRONTEND_DIST') or Path(__file__).resolve().parent.parent / 'frontend' / 'build')
+if (FRONTEND_DIST / 'index.html').is_file():
+    if (FRONTEND_DIST / 'assets').is_dir():
+        app.mount('/assets', StaticFiles(directory=FRONTEND_DIST / 'assets'), name='assets')
+
+    @app.get('/{full_path:path}', include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        if full_path == 'api' or full_path.startswith('api/'):
+            raise HTTPException(404, 'Not found')
+        target = (FRONTEND_DIST / full_path).resolve()
+        if full_path and FRONTEND_DIST.resolve() in target.parents and target.is_file():
+            return FileResponse(target)
+        return FileResponse(FRONTEND_DIST / 'index.html')

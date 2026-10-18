@@ -1,6 +1,16 @@
 import os
+import logging
 from db import db, uid, now_iso
 from auth import hash_password, verify_password
+
+# Created on startup only when SEED_DEMO_USERS=true and DEMO_PASSWORD is set (team testing).
+DEMO_USERS = [
+    ('procurement@kitchen.com', 'Procurement Manager', 'procurement_manager'),
+    ('keeper@kitchen.com', 'Store Keeper', 'store_keeper'),
+    ('manager@kitchen.com', 'Store Manager', 'store_manager'),
+    ('chef@kitchen.com', 'Chef', 'chef'),
+    ('management@kitchen.com', 'Management', 'management'),
+]
 
 BASE_UNITS = [
     {'name': 'Kilogram', 'code': 'KG', 'family': 'weight', 'factor': 1000},
@@ -38,6 +48,17 @@ async def seed():
                                    'active': True, 'created_at': now_iso()})
     elif not verify_password(admin_password, existing['password_hash']):
         await db.users.update_one({'email': admin_email}, {'$set': {'password_hash': hash_password(admin_password)}})
+
+    if os.environ.get('SEED_DEMO_USERS', '').strip().lower() == 'true':
+        demo_password = os.environ.get('DEMO_PASSWORD', '')
+        if len(demo_password) < 6:
+            logging.getLogger(__name__).warning('SEED_DEMO_USERS is true but DEMO_PASSWORD is missing or shorter than 6 characters; demo users not created')
+        else:
+            for email, name, role in DEMO_USERS:
+                if not await db.users.find_one({'email': email}):
+                    await db.users.insert_one({'id': uid(), 'name': name, 'email': email,
+                                               'password_hash': hash_password(demo_password), 'role': role,
+                                               'active': True, 'created_at': now_iso()})
 
     if await db.units.count_documents({}) == 0:
         await db.units.insert_many([{'id': uid(), **u, 'created_at': now_iso()} for u in BASE_UNITS])

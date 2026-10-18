@@ -14,6 +14,10 @@ const FEATURES = [
   { icon: ShieldCheck, text: 'Role-based approvals with full audit trail' },
 ];
 
+// Shown by default for development. Production builds set VITE_SHOW_DEMO_LOGINS=false, which removes
+// this list (and the passwords in it) from the shipped code entirely.
+const SHOW_DEMO_LOGINS = import.meta.env.VITE_SHOW_DEMO_LOGINS !== 'false';
+
 const DEMO_USERS = [
   { label: 'Admin', email: 'chennakeshavaediga@gmail.com', password: 'admin123' },
   { label: 'Chef / Kitchen Manager', email: 'chef@kitchen.com', password: 'demo123' },
@@ -121,6 +125,7 @@ export default function Login() {
               </Button>
             </form>
 
+            {SHOW_DEMO_LOGINS && (
             <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid="demo-credentials-box">
               <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-slate-400">User Logins (tap to fill)</p>
               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -133,6 +138,7 @@ export default function Login() {
                 ))}
               </div>
             </div>
+            )}
 
             <p className="mt-6 text-center text-xs text-slate-400">Authorized access only · All activity is audit-logged</p>
           </div>

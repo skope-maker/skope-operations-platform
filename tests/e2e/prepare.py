@@ -2,6 +2,8 @@
 
     E2E_API=http://localhost:8011 python tests/e2e/prepare.py
 
+For a live copy set E2E_API to its address plus E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD (the admin login) and
+E2E_DEMO_PASSWORD (the password of the five role accounts).
 Use a throwaway database (DB_NAME=skope_e2e) for the backend: the business-flow test
 asserts exact stock numbers, so it must start from a database without transactions.
 """
@@ -13,7 +15,7 @@ import urllib.request
 
 API = os.environ.get('E2E_API', 'http://localhost:8001').rstrip('/') + '/api'
 ADMIN = (os.environ.get('E2E_ADMIN_EMAIL', 'chennakeshavaediga@gmail.com'), os.environ.get('E2E_ADMIN_PASSWORD', 'admin123'))
-DEMO_PASSWORD = 'demo123'
+DEMO_PASSWORD = os.environ.get('E2E_DEMO_PASSWORD', 'demo123')  # set this when preparing a shared/live copy
 DEMO_USERS = [
     ('procurement@kitchen.com', 'procurement_manager'), ('keeper@kitchen.com', 'store_keeper'),
     ('manager@kitchen.com', 'store_manager'), ('chef@kitchen.com', 'chef'), ('management@kitchen.com', 'management'),

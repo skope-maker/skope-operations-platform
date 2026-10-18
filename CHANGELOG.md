@@ -1,7 +1,57 @@
 # Changelog
 
-Every change made to this project in this work, newest first. Nothing here is committed
-to git yet; it is all in the working tree. File paths are relative to the repository root.
+Every change made to this project in this work, newest first. Work up to 2026-10-16 is committed
+(commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
+File paths are relative to the repository root.
+
+## 2026-10-18: shared test link (single-service deployment)
+
+Goal: let the team try the whole application through one web address. The app can now run as one service:
+one address serves the screens and the API, backed by a hosted MongoDB. Local development is unchanged.
+Step-by-step instructions are in [DEPLOY.md](DEPLOY.md).
+
+### Added
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Two stages: builds the React app with production settings, then runs the FastAPI server with the built app next to it. Listens on `$PORT`. |
+| `.dockerignore` | Keeps `.env` files, tests, notes, `node_modules` and virtual environments out of the image. |
+| `render.yaml` | Render Blueprint: one Docker web service on the free plan, health check on `/api`, settings asked for at creation (`MONGO_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `DEMO_PASSWORD`), `JWT_SECRET` generated. |
+| `backend/requirements-prod.txt` | The 13 packages the app imports, pinned to the exact versions it was tested with (the old 120-line list includes unused packages). |
+| `backend/.env.example` | Every backend setting with an explanation and no secrets. |
+| `DEPLOY.md` | Hosting guide (Atlas + Render), the temporary-tunnel alternative, limits of the free plans, and what was and was not tested. |
+
+### Changed
+| File | Change |
+|---|---|
+| `backend/server.py` | (1) Serves the built frontend from the same address when `frontend/build` exists (or `FRONTEND_DIST` is set): static files under `/assets`, and any other non-API path returns the app so links like `/inventory` work on reload; unknown `/api/...` paths still return a JSON 404; path traversal returns only the app shell. (2) CORS origins now come from `CORS_ORIGINS` (default `*`, so local behaviour is unchanged). |
+| `backend/seed.py` | New optional step: when `SEED_DEMO_USERS=true` and `DEMO_PASSWORD` is set (6+ characters), creates the five role accounts if missing, with that password. Without the settings nothing is created. |
+| `frontend/src/pages/Login.jsx` | The "User logins (tap to fill)" box is controlled by `VITE_SHOW_DEMO_LOGINS`. It still shows in development. Production builds set it to `false`, which removes the box **and the passwords from the shipped JavaScript** (checked: `admin123`, `demo123`, the admin email and the box markup are absent from the production bundle, and present in the development build). |
+| `tests/e2e/prepare.py` | Demo password can be set with `E2E_DEMO_PASSWORD`, so a live copy is not prepared with a weak default. |
+
+### Why a single service
+One address means no cross-site (CORS) setup, no second host to pay for or keep in sync, and the frontend calls the API on its own address.
+
+### Verification
+Docker is not installed on this computer, so the image itself was not built. Instead the same steps were run directly: production build, backend serving it on one address with a fresh MongoDB database and demo users created from settings, then the full browser suite against that address.
+| Check | Result |
+|---|---|
+| `GET /`, `/inventory`, `/api`, an unknown `/api/...`, a built asset | 200 app, 200 app shell, 200 JSON, 404 JSON, 200 |
+| Path traversal attempts (5 variants) | Only the app shell or 404; no file or secret returned |
+| Login page of the production build | No demo-credentials box; sign-in form present |
+| Roles matrix, desktop and phone | 78/78 each |
+| Business flow (clean database) | 91/91 |
+| Admin and edge flows | 49/49 |
+| Smoke / data entry | 22/22, 6/6 |
+| Phone layout audit | No overflow |
+A first run of the business flow failed (22 checks) because that test database already held a completed earlier run; after dropping and recreating the database the same flow passed 91/91. The test databases were dropped afterwards.
+
+### Not tested
+- Building the Docker image (Python 3.14 base image, Node 22 build stage).
+- The real Render and Atlas deployment (needs your accounts).
+- The Cloudflare tunnel option in `DEPLOY.md`.
+
+### Known limits of the free hosting (details in DEPLOY.md)
+Sleeps after 15 minutes idle (about a minute to wake), uploaded files are lost on restart, 0.5 GB database, and it is not yet suitable for real business data (see the security list in the overview document).
 
 ## 2026-10-16: responsive layout, punctuation, role guard, Reports fix, end-to-end tests
 
