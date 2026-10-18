@@ -28,6 +28,9 @@ Step-by-step instructions are in [DEPLOY.md](DEPLOY.md).
 | `frontend/src/pages/Login.jsx` | The "User logins (tap to fill)" box is controlled by `VITE_SHOW_DEMO_LOGINS`. It still shows in development. Production builds set it to `false`, which removes the box **and the passwords from the shipped JavaScript** (checked: `admin123`, `demo123`, the admin email and the box markup are absent from the production bundle, and present in the development build). |
 | `tests/e2e/prepare.py` | Demo password can be set with `E2E_DEMO_PASSWORD`, so a live copy is not prepared with a weak default. |
 
+### Guide update (same day)
+`DEPLOY.md` Step 1 now covers an existing free Atlas cluster that has auto-paused (click Resume; data is kept) and recommends a separate database user limited to `readWrite` on `skope_operations` when the cluster is shared with other projects. Prompted by finding a paused `Cluster0` in the owner's Atlas account.
+
 ### Why a single service
 One address means no cross-site (CORS) setup, no second host to pay for or keep in sync, and the frontend calls the API on its own address.
 

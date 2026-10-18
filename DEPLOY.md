@@ -21,6 +21,14 @@ Plans and prices change, so check both pages before you start. Time needed: abou
 3. **Network Access**: add the IP address `0.0.0.0/0` ("allow access from anywhere"). Render's free service has no fixed address, so a narrower rule would block it. The database password is what protects it.
 4. **Connect, then Drivers**: copy the connection string. It looks like `mongodb+srv://USER:<password>@cluster0.xxxxx.mongodb.net/`. Replace `<password>` with the real password.
 
+**Already have a free cluster?** A free cluster pauses itself after a long period without use and shows "Your cluster has been
+automatically paused due to prolonged inactivity". Click **Resume** and wait until it is running again; the data is kept.
+You can reuse it, because the app only touches the database named in `DB_NAME` (default `skope_operations`) and leaves other
+databases alone. In that case create a **separate database user for this app** with limited access: in **Database Access**,
+add a user, choose **Specific Privileges**, and give it `readWrite` on the database `skope_operations` only. Atlas allows one free
+cluster per project, so if you prefer to keep this app completely apart from your other projects, create a new project and a new
+free cluster instead.
+
 ## Step 2: Create the service (Render)
 
 1. Sign in to Render with your GitHub account.
