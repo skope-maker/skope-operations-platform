@@ -315,6 +315,34 @@ The **Issue** step does not ask anyone to pick an item: the store issues exactly
 
 ---
 
+## 11b. Project basics (answer these first)
+
+**Q60.** Which website should these changes be made in?
+A) This project, the Skope Operations Platform (test copy at https://skope-operations-platform.onrender.com).
+B) A different website the team already uses. Please share its link and who has its code.
+C) Not sure.
+Note: the company's MongoDB account already holds another app's data (a database called `test`, with orders, item masters,
+ingredient indents, menu entries and fridge audits). It looks like a different website. If that is the one the team uses every
+day, the work may belong there instead.
+*Answer as: Pick one. When needed: Before start (most important question).*
+
+**Q61.** Is real data ready to load (raw items, recipes, brands, suppliers, outlets)? The website has Excel upload templates for
+items, sub-recipes, recipes and daily sales. *Answer as: Yes / No; if yes, Send a file. When needed: Before start.*
+
+**Q62.** Who will test each finished part and confirm it is correct? *Answer as: Short answer (names). When needed: Before start.*
+
+**Q63.** How should progress be shared?
+A) A short call every week.
+B) A message whenever a part is ready to test.
+C) Both.
+*Answer as: Pick one. When needed: Later.*
+
+**Q64.** When a part goes live, should the team keep their current sheets running alongside it for a while, to compare?
+If yes, for how long? *Answer as: Short answer. When needed: Later.*
+
+**Q65.** Should the live website have the company's own web address (for example ops.skopekitchens.com)? If yes, who manages
+the company's domain? *Answer as: Short answer. When needed: Later.*
+
 ## 12. Files we would like from you (checklist)
 
 - [ ] The client, brand and outlet table (Q5)

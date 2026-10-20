@@ -13,6 +13,9 @@ a glossary (client, brand, outlet, kitchen, channel, menu item vs raw item), a c
 permissions for all six roles as a table to correct (taken from the server's actual role checks, plus rows for the new features and
 columns for brand owner and store staff), questions on what data each person may see, a checklist of files needed, and what can be
 built before DotPe's API is available. No code changed.
+Added "Project basics" (Q60 to Q65): which website the work belongs in (the company's MongoDB account holds another app's
+`test` database that looks like a different website), real data to load, who tests and signs off, progress updates, running old
+sheets in parallel, and the web address. 65 questions in total.
 
 ## 2026-10-20: one reusable item search everywhere, open questions for the next phase
 
