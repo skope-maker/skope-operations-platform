@@ -4,6 +4,21 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: Word document of requirements, decisions and questions
+
+`docs/Skope-Next-Phase-Questions.docx` (14 pages, A4) is the version to send to the team; `docs/open-questions.md` now holds the
+same content for reading and diffing in git. Both are generated from one source, so they cannot drift apart.
+Changes from the earlier draft:
+- Technical questions are no longer asked: they are answered in a "Decisions we have made" table (18 decisions, for example photo
+  shrinking, report formats, sync direction, customer data, password reset, hosting and security before real clients), each with an
+  "Agree? (Yes / No)" column.
+- DotPe will not provide a test account, so a section explains how we work on the live account safely (read first, changes only on
+  dishes or an outlet you choose, every change recorded with the old value so it can be undone), and Q52 asks which dishes or outlet
+  may be used for testing.
+- 52 questions remain, all business questions, grouped A to H, each with "How to answer", "Needed" and a shaded "Your answer" cell;
+  the client/brand/outlet table and the roles table (landscape page) are fill-in tables.
+Checked: the skill's Word validator passes; a PDF preview exported through Microsoft Word was inspected page by page.
+
 ## 2026-10-20: requirements and questions for the next phase
 
 `docs/open-questions.md` rewritten from the team's updated list of seven requests (live orders, sales reports, catalog management,
