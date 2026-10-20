@@ -328,7 +328,7 @@ function MenuTab({ isAdmin, goUpload }) {
   }, []);
   useEffect(() => {
     const t = setTimeout(() => {
-      api.get('/rista/menu', { params: clean({ q, account, status }) }).then((r) => setRows(r.data)).catch((e) => toast.error(errMsg(e)));
+      api.get('/rista/menu', { params: clean({ q, account, status }) }).then((r) => setRows(r.data)).catch((e) => { setRows([]); toast.error(errMsg(e)); });
     }, 250);
     return () => clearTimeout(t);
   }, [q, account, status]);
@@ -371,7 +371,8 @@ function MenuTab({ isAdmin, goUpload }) {
         <Pick label="Status" value={status} onChange={setStatus} testid="rista-menu-status" allLabel="All dishes"
           options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
       </div>
-      <DataTable testid="rista-menu-table" exportName="rista-menu.csv" searchKeys={['sku', 'name']}
+      {rows === null && <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground" data-testid="rista-menu-loading"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading menu…</div>}
+      {rows !== null && <DataTable testid="rista-menu-table" exportName="rista-menu.csv" searchKeys={['sku', 'name']}
         columns={[
           { key: 'name', label: 'Dish', render: (r) => <span>{r.name}{r.variant ? <span className="text-muted-foreground"> · {r.variant}</span> : ''}</span> },
           { key: 'sku', label: 'SKU' },
@@ -382,7 +383,7 @@ function MenuTab({ isAdmin, goUpload }) {
           { key: 'sold_qty', label: 'Sold', numeric: true, render: (r) => fmt(r.sold_qty) },
           { key: 'has_recipe', label: 'Recipe here', render: (r) => (r.has_recipe ? 'Yes' : 'No') },
           { key: 'actions', label: '', render: (r) => <Button size="sm" variant="outline" onClick={() => openPrices(r.sku)} data-testid={`rista-prices-${r.sku}`}>Prices</Button> },
-        ]} rows={rows || []} />
+        ]} rows={rows} />}
 
       <Dialog open={!!prices} onOpenChange={(o) => !o && setPrices(null)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto" data-testid="rista-prices-dialog">

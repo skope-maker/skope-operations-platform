@@ -39,6 +39,8 @@ roles, catalog editing and production tracking still wait for answers (see `docs
   quantity, recipe link, prices per branch and channel), Upload files (where to find each report in Rista, load, result,
   history).
 - Corrected where "Export Items" is in Rista (Business Settings > Items > three dots), as given by Youvraj.
+- Menu tab on the live site showed "No records found" for the ~4 seconds the list took to load. It now shows
+  "Loading menu…", and `GET /api/rista/menu` returns only the listed columns (details and prices come from `/menu/{sku}`).
 - Checked with the real files on a local test database: 13,829 lines, 6,520 orders, net Rs 20,35,097.62, 31 days, source
   shares 44.4 / 39.6 / 8.3 / 7.6 %, 77 cancellations (Rs 27,830.34), 1,507 dishes and 224 price columns, all equal to the
   analysis of the files. Loading the month takes about 4 seconds; the summary 0.2 seconds; a month's Excel download about

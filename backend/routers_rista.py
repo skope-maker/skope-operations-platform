@@ -519,7 +519,10 @@ async def list_menu(q: str = '', account: str = '', status: str = '', user=Depen
         match['active'] = True
     elif status == 'inactive':
         match['active'] = False
-    rows = await db.rista_menu.find(match, {'_id': 0, 'prices': 0, 'import_id': 0}).sort([('account', 1), ('name', 1)]).to_list(5000)
+    # Only what the list shows; full details and prices come from /menu/{sku}.
+    fields = {'_id': 0, 'sku': 1, 'name': 1, 'variant': 1, 'account': 1, 'category': 1, 'status': 1, 'active': 1,
+              'price_min': 1, 'price_max': 1}
+    rows = await db.rista_menu.find(match, fields).sort([('account', 1), ('name', 1)]).to_list(5000)
     sold = {d['_id']: d for d in await db.rista_sales_lines.aggregate([
         {'$match': {'line_type': 'Item'}},
         {'$group': {'_id': '$sku', 'qty': {'$sum': '$qty'}, 'net': {'$sum': '$net'}}}]).to_list(10000)}
