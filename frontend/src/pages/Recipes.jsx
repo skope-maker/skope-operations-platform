@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ItemPicker } from '../components/ItemPicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload } from 'lucide-react';
@@ -73,23 +74,23 @@ function RecipeDialog({ open, onClose, onSaved, recipe, brands, items, subRecipe
           <Label>Ingredients (raw items or sub-recipes)</Label>
           {form.items.map((l, i) => (
             <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
-              <div className="col-span-4 sm:col-span-2 space-y-1">
+              <div className="col-span-12 sm:col-span-2 space-y-1">
                 <Label className="text-xs">Type</Label>
                 <Select value={l.line_type} onValueChange={(v) => setLine(i, { line_type: v, item_id: '', sub_recipe_id: '' })}>
                   <SelectTrigger className="h-11" data-testid={`recipe-line-type-${i}`}><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="item">Raw Item</SelectItem><SelectItem value="sub">Sub-Recipe</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="col-span-8 sm:col-span-5 space-y-1">
+              <div className="col-span-12 sm:col-span-5 space-y-1">
                 <Label className="text-xs">Ingredient</Label>
-                <Select value={l.line_type === 'sub' ? l.sub_recipe_id : l.item_id} onValueChange={(v) => setLine(i, l.line_type === 'sub' ? { sub_recipe_id: v } : { item_id: v })}>
-                  <SelectTrigger className="h-11" data-testid={`recipe-line-ing-${i}`}><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {l.line_type === 'sub'
-                      ? subRecipes.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)
-                      : items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {l.line_type === 'sub' ? (
+                  <Select value={l.sub_recipe_id} onValueChange={(v) => setLine(i, { sub_recipe_id: v })}>
+                    <SelectTrigger className="h-11" data-testid={`recipe-line-ing-${i}`}><SelectValue placeholder="Select sub-recipe" /></SelectTrigger>
+                    <SelectContent>{subRecipes.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : (
+                  <ItemPicker testid={`recipe-line-ing-${i}`} value={l.item_id} onSelect={(it) => setLine(i, { item_id: it?.id || '' })} placeholder="Search item name / code" />
+                )}
               </div>
               <div className="col-span-5 sm:col-span-2 space-y-1"><Label className="text-xs">Qty / portion</Label><Input type="number" min="0" className="h-11" value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} data-testid={`recipe-line-qty-${i}`} /></div>
               <div className="col-span-5 sm:col-span-2 space-y-1">
@@ -154,10 +155,7 @@ function SubRecipeDialog({ open, onClose, onSaved, sub, brands, items }) {
           </div>
           <div className="space-y-2">
             <Label>Output Item (produced)</Label>
-            <Select value={form.output_item_id} onValueChange={(v) => setForm({ ...form, output_item_id: v })}>
-              <SelectTrigger className="h-12" data-testid="sub-output"><SelectValue placeholder="Select item" /></SelectTrigger>
-              <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}{it.is_sub_recipe ? ' (prepared)' : ''}</SelectItem>)}</SelectContent>
-            </Select>
+            <ItemPicker testid="sub-output" value={form.output_item_id} onSelect={(it) => setForm((f) => ({ ...f, output_item_id: it?.id || '' }))} placeholder="Search the prepared item" />
           </div>
           <div className="space-y-2"><Label>Final Yield Qty</Label><Input type="number" min="0" className="h-12" value={form.yield_qty} onChange={(e) => setForm({ ...form, yield_qty: e.target.value })} data-testid="sub-yield" /></div>
           <div className="space-y-2">
@@ -174,10 +172,7 @@ function SubRecipeDialog({ open, onClose, onSaved, sub, brands, items }) {
             <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
               <div className="col-span-12 sm:col-span-6 space-y-1">
                 <Label className="text-xs">Ingredient</Label>
-                <Select value={l.item_id} onValueChange={(v) => setForm((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: v } : x)) }))}>
-                  <SelectTrigger className="h-11" data-testid={`sub-line-item-${i}`}><SelectValue placeholder="Select item" /></SelectTrigger>
-                  <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <ItemPicker testid={`sub-line-item-${i}`} value={l.item_id} onSelect={(it) => setForm((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: it?.id || '' } : x)) }))} placeholder="Search item name / code" />
               </div>
               <div className="col-span-5 sm:col-span-2 space-y-1"><Label className="text-xs">Qty</Label><Input type="number" min="0" className="h-11" value={l.qty} onChange={(e) => setForm((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)) }))} data-testid={`sub-line-qty-${i}`} /></div>
               <div className="col-span-5 sm:col-span-3 space-y-1">

@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ItemPicker } from '../components/ItemPicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
@@ -32,7 +33,6 @@ function StockView({ locationId, testid }) {
 
 export default function Inventory() {
   const [kitchens, setKitchens] = useState([]);
-  const [items, setItems] = useState([]);
   const [brands, setBrands] = useState([]);
   const [ledger, setLedger] = useState([]);
   const [ledgerFilter, setLedgerFilter] = useState({ item_id: 'all', location_id: 'all', date_from: '', date_to: '' });
@@ -46,7 +46,6 @@ export default function Inventory() {
 
   useEffect(() => {
     api.get('/kitchens').then((r) => setKitchens(r.data.filter((k) => k.active))).catch(() => {});
-    api.get('/items').then((r) => setItems(r.data.filter((i) => i.active))).catch(() => {});
     api.get('/brands').then((r) => setBrands(r.data)).catch(() => {});
   }, []);
 
@@ -124,10 +123,7 @@ export default function Inventory() {
           <DataTable testid="ledger-table" exportName="inventory-ledger.csv" searchKeys={['item_name', 'txn_no', 'reference_no', 'txn_type']}
             filters={
               <>
-                <Select value={ledgerFilter.item_id} onValueChange={(v) => setLedgerFilter({ ...ledgerFilter, item_id: v })}>
-                  <SelectTrigger className="h-11 w-44" data-testid="ledger-item-filter"><SelectValue placeholder="Item" /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">All Items</SelectItem>{items.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="w-full sm:w-64"><ItemPicker testid="ledger-item-filter" includeInactive value={ledgerFilter.item_id === 'all' ? '' : ledgerFilter.item_id} onSelect={(it) => setLedgerFilter((f) => ({ ...f, item_id: it ? it.id : 'all' }))} placeholder="All items (search to filter)" /></div>
                 <Select value={ledgerFilter.location_id} onValueChange={(v) => setLedgerFilter({ ...ledgerFilter, location_id: v })}>
                   <SelectTrigger className="h-11 w-44" data-testid="ledger-location-filter"><SelectValue placeholder="Location" /></SelectTrigger>
                   <SelectContent><SelectItem value="all">All Locations</SelectItem>{kitchens.map((k) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
@@ -182,10 +178,7 @@ export default function Inventory() {
               <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
                 <div className="col-span-12 sm:col-span-6 space-y-1">
                   <Label className="text-xs">Item</Label>
-                  <Select value={l.item_id} onValueChange={(v) => { const it = items.find((x) => x.id === v); setTransfer((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: v, unit: it?.consumption_unit || 'KG' } : x)) })); }}>
-                    <SelectTrigger className="h-11" data-testid={`transfer-item-${i}`}><SelectValue placeholder="Select item" /></SelectTrigger>
-                    <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <ItemPicker testid={`transfer-item-${i}`} value={l.item_id} locationId={transfer.from_location_id} onSelect={(it) => setTransfer((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: it?.id || '', unit: it?.consumption_unit || 'KG' } : x)) }))} placeholder="Search item name / code" />
                 </div>
                 <div className="col-span-5 sm:col-span-2 space-y-1">
                   <Label className="text-xs">Qty</Label>
@@ -220,10 +213,7 @@ export default function Inventory() {
             </div>
             <div className="space-y-2">
               <Label>Item</Label>
-              <Select value={adjustment.item_id} onValueChange={(v) => { const it = items.find((x) => x.id === v); setAdjustment({ ...adjustment, item_id: v, unit: it?.consumption_unit || 'KG' }); }}>
-                <SelectTrigger className="h-12" data-testid="adjustment-item"><SelectValue placeholder="Select item" /></SelectTrigger>
-                <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <ItemPicker testid="adjustment-item" value={adjustment.item_id} locationId={adjustment.location_id} onSelect={(it) => setAdjustment((a) => ({ ...a, item_id: it?.id || '', unit: it?.consumption_unit || 'KG' }))} placeholder="Search item name / code" />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">

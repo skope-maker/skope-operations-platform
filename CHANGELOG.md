@@ -4,6 +4,51 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: one reusable item search everywhere, open questions for the next phase
+
+Request from the team (item 1 of 8): wherever users pick an item, use the same search box, built once and reused. Before this,
+only the purchase receipt and the kitchen request had search; nine other places used a plain dropdown of every item.
+
+### Changed
+| File | Change |
+|---|---|
+| `frontend/src/components/ItemPicker.jsx` | Now the single item search box for the whole app. New `includeInactive` option (history filters can find deactivated items; data-entry screens still cannot). Shows a "Prepared" label on sub-recipe items. When several boxes on a screen already have an item chosen (for example a recipe with many lines), they share one lookup of item names instead of each downloading the full item list. Change/clear buttons are 36px on phones (28px from tablet up) and have screen-reader labels. |
+| `frontend/src/pages/Inventory.jsx` | Stock transfer lines (stock shown at the **from** location), stock adjustment (stock at the chosen location) and the ledger item filter (finds deactivated items; clearing returns to all items) use the search box. Removed the now-unused full item list download. |
+| `frontend/src/pages/Wastage.jsx` | Item uses the search box with stock at the chosen kitchen; the item field takes the full width on phones (was half). Removed the unused item list download. |
+| `frontend/src/pages/RnD.jsx` | Trial ingredients use the search box with stock at the R&D kitchen, the location trials actually consume from. Removed the unused item list download. |
+| `frontend/src/pages/Recipes.jsx` | Recipe raw-item lines, sub-recipe output item and sub-recipe ingredients use the search box. Recipe lines set to "Sub-Recipe" keep their sub-recipe list. On phones the line's type and ingredient fields each take a full row. |
+| `frontend/src/pages/Reports.jsx` | Item Ledger report item filter uses the search box (finds deactivated items). Removed the unused item list download. |
+
+Each screen keeps its earlier behaviour: choosing an item still sets the line's unit to the item's usage unit where it did before.
+Places still picking from a list on purpose: sub-recipes (Production, recipe lines of type Sub-Recipe) and dishes (Sales), which are
+not items; whether they should also be searchable is open question 1 in `docs/open-questions.md`.
+
+### Added
+| File | Purpose |
+|---|---|
+| `frontend/src/components/ItemPicker.test.jsx` | 5 unit tests: search with location stock, "Prepared" label, inactive items for history filters, choosing and clearing, one shared name lookup. Checked that a test fails when the inactive-items feature is broken on purpose, then passes when restored. |
+| `tests/e2e/item-search.mjs` | Browser test of all 11 places, each by the role that does that job (see the e2e README). |
+| `docs/open-questions.md` | Plain-language questions for the eight requests, with an answer column and a status table. |
+
+### Updated
+- `tests/e2e/business-flow.mjs`, `tests/e2e/admin-and-edge-flows.mjs`: six steps now pick items through the search box.
+- `tests/e2e/README.md`: lists the new test.
+
+### Verification (fresh scratch database, dev server)
+| Check | Result |
+|---|---|
+| Unit tests | 12/12 (was 7) |
+| ESLint | 0 errors (the same 7 older warnings) |
+| Item search, desktop / phone | 44/44, 46/46 |
+| Business flow (now picking items by search) | 91/91 |
+| Admin and edge flows | 49/49 |
+| Roles, desktop / phone | 78/78 each |
+| Smoke / data entry | 22/22, 6/6 |
+| Phone layout audit | No overflow; item results list 324px wide on a 390px phone (was 154px on Wastage) |
+
+A first attempt at the page edits matched the wrong tag and broke five files; they were restored from git and redone before any
+testing. Not yet on the live test site: it updates after `git push`.
+
 ## 2026-10-18: shared test link (single-service deployment)
 
 Goal: let the team try the whole application through one web address. The app can now run as one service:

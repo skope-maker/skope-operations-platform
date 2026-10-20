@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ItemPicker } from '../components/ItemPicker';
 import { toast } from 'sonner';
 
 const REPORTS = [
@@ -27,13 +28,11 @@ export default function Reports() {
   const [rowsReport, setRowsReport] = useState('sales');
   const [brands, setBrands] = useState([]);
   const [kitchens, setKitchens] = useState([]);
-  const [items, setItems] = useState([]);
   const [filters, setFilters] = useState({ date_from: '', date_to: '', brand_id: 'all', location_id: '', item_id: 'all', date: new Date().toISOString().slice(0, 10) });
 
   useEffect(() => {
     api.get('/brands').then((r) => setBrands(r.data)).catch(() => {});
     api.get('/kitchens').then((r) => setKitchens(r.data)).catch(() => {});
-    api.get('/items').then((r) => setItems(r.data)).catch(() => {});
   }, []);
 
   const run = async () => {
@@ -185,10 +184,7 @@ export default function Reports() {
         {report === 'ledger' && (
           <div className="space-y-2">
             <Label>Item</Label>
-            <Select value={filters.item_id} onValueChange={(v) => setFilters({ ...filters, item_id: v })}>
-              <SelectTrigger className="h-12 w-44" data-testid="report-item"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Items</SelectItem>{items.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-            </Select>
+            <div className="w-full sm:w-64"><ItemPicker testid="report-item" includeInactive value={filters.item_id === 'all' ? '' : filters.item_id} onSelect={(it) => setFilters((f) => ({ ...f, item_id: it ? it.id : 'all' }))} placeholder="All items (search to filter)" /></div>
           </div>
         )}
         <Button className="h-12 px-8" onClick={run} data-testid="report-run-btn">Run Report</Button>

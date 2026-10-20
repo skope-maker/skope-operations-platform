@@ -4,8 +4,24 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Search, X, Check } from 'lucide-react';
 
-/** Server-side searchable item picker: search by name, code/SKU or category. */
-export function ItemPicker({ value, onSelect, locationId = '', testid = 'item-picker', placeholder = 'Search item by name, code or category' }) {
+// One shared "which item is this id?" lookup, so several pickers on a screen (for example a recipe with
+// many ingredient lines) don't each download the whole item list just to show a name.
+let lookup = null;
+function loadAllItems() {
+  if (!lookup) {
+    lookup = api.get('/items').then((r) => r.data).catch(() => []);
+    setTimeout(() => { lookup = null; }, 30000);
+  }
+  return lookup;
+}
+
+/**
+ * The one item search box used everywhere an item is picked: search by name, code/SKU or category.
+ * - locationId: also show live stock at that location next to each result.
+ * - includeInactive: also find deactivated items (use for history filters such as the ledger).
+ * - onSelect(item | null): called with the full item (including its units), or null when cleared.
+ */
+export function ItemPicker({ value, onSelect, locationId = '', includeInactive = false, testid = 'item-picker', placeholder = 'Search item by name, code or category' }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -16,7 +32,7 @@ export function ItemPicker({ value, onSelect, locationId = '', testid = 'item-pi
   useEffect(() => {
     if (!value) { setSelected(null); return; }
     if (selected?.id === value) return;
-    api.get(`/items`).then((r) => setSelected(r.data.find((i) => i.id === value) || null)).catch(() => {});
+    loadAllItems().then((all) => setSelected(all.find((i) => i.id === value) || null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -24,13 +40,13 @@ export function ItemPicker({ value, onSelect, locationId = '', testid = 'item-pi
     if (!open) return;
     setLoading(true);
     const t = setTimeout(() => {
-      api.get(`/items/search?q=${encodeURIComponent(q)}&limit=25${locationId ? `&location_id=${locationId}` : ''}`)
+      api.get(`/items/search?q=${encodeURIComponent(q)}&limit=25${locationId ? `&location_id=${locationId}` : ''}${includeInactive ? '&active_only=false' : ''}`)
         .then((r) => setResults(r.data))
         .catch(() => setResults([]))
         .finally(() => setLoading(false));
     }, 250);
     return () => clearTimeout(t);
-  }, [q, open, locationId]);
+  }, [q, open, locationId, includeInactive]);
 
   useEffect(() => {
     const onDoc = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
@@ -51,8 +67,8 @@ export function ItemPicker({ value, onSelect, locationId = '', testid = 'item-pi
         <div className="flex h-11 items-center justify-between gap-2 rounded-md border bg-background px-3 text-sm" data-testid={`${testid}-selected`}>
           <span className="truncate"><b>{selected.name}</b> <span className="text-muted-foreground">({selected.code})</span></span>
           <div className="flex shrink-0 gap-1">
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(true)} data-testid={`${testid}-change`}><Search className="h-3.5 w-3.5" /></Button>
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelected(null); onSelect(null); }} data-testid={`${testid}-clear`}><X className="h-3.5 w-3.5" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" aria-label="Change item" onClick={() => setOpen(true)} data-testid={`${testid}-change`}><Search className="h-3.5 w-3.5" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" aria-label="Clear item" onClick={() => { setSelected(null); onSelect(null); }} data-testid={`${testid}-clear`}><X className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
       ) : (
@@ -76,7 +92,7 @@ export function ItemPicker({ value, onSelect, locationId = '', testid = 'item-pi
               className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-secondary"
               data-testid={`${testid}-option-${it.code}`}>
               <span className="min-w-0">
-                <span className="block truncate font-medium">{it.name}</span>
+                <span className="block truncate font-medium">{it.name}{it.is_sub_recipe && <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-secondary-foreground" data-testid={`${testid}-prepared-${it.code}`}>Prepared</span>}</span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {it.code}{it.category_name ? ` · ${it.category_name}` : ''}{it.subcategory ? ` · ${it.subcategory}` : ''}
                 </span>

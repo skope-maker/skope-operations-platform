@@ -181,7 +181,7 @@ await as('store_manager', 'transfer gravy base to normal kitchen', async (page) 
   await page.click('[data-testid="tab-inv-transfer"]');
   await pick(page, 'transfer-from', /Base Kitchen/);
   await pick(page, 'transfer-to', /Normal Kitchen/);
-  await pick(page, 'transfer-item-0', /Gravy/);
+  await pickItem(page, 'transfer-item-0', 'ITM-GRAVY', 'Gravy');
   check(/GM/.test(await page.locator('[data-testid="transfer-unit-0"]').innerText()), 'picking an item switches the transfer unit to its consumption unit (GM)');
   await page.fill('[data-testid="transfer-qty-0"]', '1000');
   await page.click('[data-testid="transfer-submit-btn"]');
@@ -218,7 +218,7 @@ check((await api('chef', '/sales?status=posted')).data.length === 1, 'sale is no
 await as('store_manager', 'record wastage', async (page) => {
   await goto(page, '/wastage');
   await pick(page, 'wastage-kitchen', /Normal Kitchen/);
-  await pick(page, 'wastage-item', /Chicken/);
+  await pickItem(page, 'wastage-item', 'ITM-CHICKEN', 'Chicken');
   await page.fill('[data-testid="wastage-qty"]', '100');
   await pick(page, 'wastage-reason', /./);
   await page.click('[data-testid="wastage-submit-btn"]');
@@ -255,7 +255,7 @@ await as('chef', 'record an R&D trial', async (page) => {
   await goto(page, '/rd');
   await page.fill('[data-testid="trial-product"]', 'Flow Test Gravy');
   await page.fill('[data-testid="trial-yield"]', '1');
-  await pick(page, 'trial-item-0', /Onion/);
+  await pickItem(page, 'trial-item-0', 'ITM-ONION', 'Onion');
   await page.fill('[data-testid="trial-qty-0"]', '200');
   await page.click('[data-testid="trial-submit-btn"]');
   check(await toast(page, /trial recorded/i), 'toast: R&D trial recorded');

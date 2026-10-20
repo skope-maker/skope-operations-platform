@@ -5,11 +5,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ItemPicker } from '../components/ItemPicker';
 import { toast } from 'sonner';
 
 export default function Wastage() {
   const [rows, setRows] = useState([]);
-  const [items, setItems] = useState([]);
   const [kitchens, setKitchens] = useState([]);
   const [brands, setBrands] = useState([]);
   const [reasons, setReasons] = useState([]);
@@ -17,7 +17,6 @@ export default function Wastage() {
 
   const load = () => {
     api.get('/wastage').then((r) => setRows(r.data)).catch((e) => toast.error(errMsg(e)));
-    api.get('/items').then((r) => setItems(r.data.filter((i) => i.active))).catch(() => {});
     api.get('/kitchens').then((r) => setKitchens(r.data.filter((k) => k.active))).catch(() => {});
     api.get('/brands').then((r) => setBrands(r.data.filter((b) => b.status === 'active'))).catch(() => {});
     api.get('/wastage/reasons').then((r) => setReasons(r.data)).catch(() => {});
@@ -57,12 +56,9 @@ export default function Wastage() {
               <SelectContent>{kitchens.map((k) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="col-span-2 space-y-2 sm:col-span-1">
             <Label>Item</Label>
-            <Select value={form.item_id} onValueChange={(v) => { const it = items.find((x) => x.id === v); setForm({ ...form, item_id: v, unit: it?.consumption_unit || 'KG' }); }}>
-              <SelectTrigger className="h-12" data-testid="wastage-item"><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent>{items.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-            </Select>
+            <ItemPicker testid="wastage-item" value={form.item_id} locationId={form.kitchen_id} onSelect={(it) => setForm((f) => ({ ...f, item_id: it?.id || '', unit: it?.consumption_unit || 'KG' }))} placeholder="Search item name / code" />
           </div>
           <div className="space-y-2"><Label>Qty</Label><Input type="number" min="0" className="h-12" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} data-testid="wastage-qty" /></div>
           <div className="space-y-2">

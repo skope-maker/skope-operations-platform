@@ -12,6 +12,7 @@ purchase-to-sales business chain and the phone layout.
 | `admin-and-edge-flows.mjs` | User administration (create, log in as the new user, deactivate, delete), receipt rejection and partial approval, intent rejection, recipe creation, bulk upload, every report type, reopening a closed day (49 checks). |
 | `data-entry.mjs` | Create/delete a master record through dialogs, tabs, file upload/download round trip. |
 | `mobile-layout.mjs` | Horizontal overflow, small tap targets and dialog fit on every screen at a given viewport. |
+| `item-search.mjs` | The shared item search box on all 11 places it is used, each by the role that does that job: results while typing, stock at the right location for that step, the choice sticks and sets the unit, history filters find deactivated items while entry screens do not, "Prepared" label, phone width (44 checks desktop, 46 phone). |
 
 ## The business chain (`business-flow.mjs`)
 
@@ -53,6 +54,7 @@ node admin-and-edge-flows.mjs http://localhost:5199 ./out desktop
 node smoke.mjs         http://localhost:5199 ./out
 node data-entry.mjs    http://localhost:5199 ./out
 node mobile-layout.mjs http://localhost:5199 ./out 375 812
+node item-search.mjs   http://localhost:5199 ./out desktop      # or: phone
 ```
 
 On PowerShell set the variables first, for example `$env:DB_NAME='skope_e2e'`.

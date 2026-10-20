@@ -183,10 +183,10 @@ await as('chef', 'create sub-recipe and recipe in the UI', async (page) => {
   await page.click('[data-testid="new-subrecipe-btn"]');
   await page.fill('[data-testid="sub-name"]', `UI Sauce ${TAG}`);
   await page.fill('[data-testid="sub-code"]', `SR-UI-${TAG}`);
-  await pick(page, 'sub-output', /Gravy Base/);
+  await pickItem(page, 'sub-output', 'ITM-GRAVY', 'Gravy');
   await page.fill('[data-testid="sub-yield"]', '5');
   await page.click('[data-testid="sub-add-line"]');
-  await pick(page, 'sub-line-item-0', /Onion/);
+  await pickItem(page, 'sub-line-item-0', 'ITM-ONION', 'Onion');
   await page.fill('[data-testid="sub-line-qty-0"]', '3');
   await page.click('[data-testid="sub-save-btn"]');
   check(await toast(page, /sub-recipe created/i), 'toast: sub-recipe created (yield calculated)');
@@ -198,7 +198,7 @@ await as('chef', 'create sub-recipe and recipe in the UI', async (page) => {
   await pick(page, 'recipe-brand', 'Test Brand');
   await page.fill('[data-testid="recipe-price"]', '150');
   await page.click('[data-testid="recipe-add-line"]');
-  await pick(page, 'recipe-line-ing-0', /Chicken/);
+  await pickItem(page, 'recipe-line-ing-0', 'ITM-CHICKEN', 'Chicken');
   await page.fill('[data-testid="recipe-line-qty-0"]', '120');
   await page.click('[data-testid="recipe-save-btn"]');
   check(await toast(page, /recipe (created|saved)|created/i), 'toast: recipe created');

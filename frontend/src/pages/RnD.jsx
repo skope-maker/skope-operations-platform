@@ -6,19 +6,21 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ItemPicker } from '../components/ItemPicker';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 
 export default function RnD() {
   const [trials, setTrials] = useState([]);
-  const [items, setItems] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [rdLocationId, setRdLocationId] = useState('');
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), brand_id: '', product: '', yield_qty: 0, yield_unit: 'KG', result: '', remarks: '', items: [{ item_id: '', qty: 0, unit: 'KG' }] });
 
   const load = () => {
     api.get('/rd/trials').then((r) => setTrials(r.data)).catch((e) => toast.error(errMsg(e)));
-    api.get('/items').then((r) => setItems(r.data.filter((i) => i.active))).catch(() => {});
     api.get('/brands').then((r) => setBrands(r.data.filter((b) => b.status === 'active'))).catch(() => {});
+    // Trials take stock from the R&D location, so the item search shows stock there.
+    api.get('/kitchens').then((r) => setRdLocationId(r.data.find((k) => k.type === 'rd' && k.active)?.id || '')).catch(() => {});
   };
   useEffect(load, []);
 
@@ -63,10 +65,7 @@ export default function RnD() {
           <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
             <div className="col-span-12 sm:col-span-6 space-y-1">
               <Label className="text-xs">Ingredient</Label>
-              <Select value={l.item_id} onValueChange={(v) => { const it = items.find((x) => x.id === v); setForm((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: v, unit: it?.consumption_unit || 'KG' } : x)) })); }}>
-                <SelectTrigger className="h-11" data-testid={`trial-item-${i}`}><SelectValue placeholder="Select item" /></SelectTrigger>
-                <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <ItemPicker testid={`trial-item-${i}`} value={l.item_id} locationId={rdLocationId} onSelect={(it) => setForm((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, item_id: it?.id || '', unit: it?.consumption_unit || 'KG' } : x)) }))} placeholder="Search item name / code" />
             </div>
             <div className="col-span-5 sm:col-span-2 space-y-1"><Label className="text-xs">Qty</Label><Input type="number" min="0" className="h-11" value={l.qty} onChange={(e) => setForm((f) => ({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)) }))} data-testid={`trial-qty-${i}`} /></div>
             <div className="col-span-5 sm:col-span-3 space-y-1">
