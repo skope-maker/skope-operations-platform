@@ -1,14 +1,16 @@
 # Skope Operations Platform: Next phase: requirements, decisions and questions
 
-*Prepared by Youvraj · 20 October 2026 · Version 1*
+*Prepared by Youvraj · 20 October 2026 · Version 2*
 
-> The Word version (`Skope-Next-Phase-Questions.docx`) is the one sent to the team. This file holds the same content so it can be read and diffed in git. Both are generated from one source.
+> The Word version (`Skope-Next-Phase-Questions-v2.docx`) is the one sent to the team. This file holds the same content so it can be read and diffed in git. Both are generated from one source.
 
 ## 1. About this document
 
 The team asked for seven changes to the operations website. Before building them, we need a few answers so that we build the right thing the first time.
 
-This document has three parts: what we understood from the request, the technical decisions we have already made (you only need to agree or disagree), and the questions only your team can answer.
+This version also uses what we learned on 19 October from the Rista portal and from one month of Rista sales data (section 3). Several questions are now answered from that data, and the remaining ones are more specific.
+
+The document has four parts: what was requested, what we learned from Rista, the technical decisions we have already made (you only agree or disagree), and the questions only your team can answer.
 
 ### How to answer
 
@@ -39,154 +41,213 @@ Type your answers in the shaded "Your answer" column, then send the document bac
 | R6 | Production and sales tracking | Record what is sent to each outlet and compare it with sales, so the team can investigate the mismatches they track by hand today. | Needs answers |
 | R7 | Role-based access | Admin plus about five or six other roles, including store staff, each limited to the right screens and data. | Needs answers |
 
-## 3. Decisions we have made
+## 3. What we learned from Rista
+
+On 19 October we went through the Rista portal with Keshava and downloaded one month of sales ("Sales Items By Transaction", 19 September to 19 October 2026). The numbers below come from that file. Customer names and phone numbers in it were not copied anywhere.
+
+| Topic | What we found |
+| --- | --- |
+| Orders | 6,520 orders (13,829 item lines) in 31 days, about 210 orders a day. |
+| Sales | ₹20.35 lakh net, after ₹2.30 lakh of discounts (₹22.65 lakh before discounts). |
+| Where orders come from | Zomato 44%, Swiggy 40%, Ownly 8%, in-store (POS) 8% of net sales. |
+| Branches | Rista has 5 branches. All sales came from 2 of them: JP Nagar and Marathahalli, both marked "Outlet". |
+| Brands | 13 brands sell from those 2 branches. Kochi Kurry Klub alone is 72% of sales (section 8 lists all of them). |
+| Channels | 33 channel names, each tied to a brand, for example "Zomato(Kochi Kurry Klub)" or "Swiggy - Eleven Bakehouse", plus "ODC" and "Offline - JP Nagar". |
+| Brand on each sale | Each line has a "Business Brand" and an "Account Name", and they do not always match. For example, some Kochi Kurry Klub sales carry the account names Al Mashawi Shawarma, Chicbun, Corporate Menu or ODC Event. |
+| Dishes | 375 dish codes (SKUs such as GIA001). Lines are dishes, options or add-ons, some with sizes (100 ml, Serves 1-2). |
+| Business day | Every sale already has a Rista "Business Date", separate from the exact invoice time. |
+| Costs in Rista | Rista records a materials cost on some lines (3,629 of 13,829), so Rista's own inventory may be in use. |
+| Customer details | A name and phone number appear on 787 lines (6%). |
+| Cancelled orders | This file has none: every line is a completed sale. Rista keeps cancellations in a separate "Cancelled Transactions" report. |
+| Report limits | Rista shows a sales report on screen for at most 7 days and 1 branch. Bigger ones are emailed or downloaded, and downloads are kept for only 3 days. |
+| Menu (catalog) | Dishes have a photo, veg or non-veg tag, code and price, and can be marked unavailable. Rista has bulk "Upload Items", "Upload Item Price", "Bulk Image Update" and "Export Items", a "Price book" for channel prices, a "Display Book" per channel and branch, item options and item schedules. |
+| Live order board | Online orders move through New, Accepted / Preparing, Prepared, Processed, Dispatched, Delivered and Cancelled, with advance orders and separate online and offline tabs. |
+| Dine-in | There is a table view (20 tables) and a point-of-sale screen for dine-in orders. |
+| People in Rista | Rista uses accounts per branch such as "Dispatcher JP Nagar" and "Manager Mhalli". |
+
+### What this means for the build
+
+- A brand is not the same as an outlet: one branch cooks many brands. Client logins must be limited by brand, not by branch.
+- We must agree which field decides who owns a sale (Business Brand or Account Name), otherwise a client could see another brand's sales (Q15).
+- Ownly and in-store sales are 16% of sales. The request mentions only Swiggy and Zomato, so we need to know whether to include them (Q26).
+- Importing sales automatically must work around Rista's limits: one branch and one day at a time, overnight.
+- Rista already supports channel prices and bulk Excel uploads, so menu changes have a fallback even if the API is limited.
+- If Rista's inventory is in use, we must avoid keeping stock in two places (Q34).
+- About 210 orders a day is a small volume: modest paid hosting will be enough.
+
+## 4. Decisions we have made
 
 Write Yes if you agree, or No with a short reason.
 
 | No. | Topic | Our decision | Agree? |
 | --- | --- | --- | --- |
-| 1 | Working on the live DotPe account | There is no test account, so we start by only reading from Rista (orders, sales, menu). We change the menu only on dishes or an outlet you choose for testing, at times you agree. Every change we send is recorded together with the old value, so it can be undone. |  |
+| 1 | Working on the live DotPe account | There is no test account, so we start by only reading from Rista (orders, sales, menu). We change the menu only on dishes or a branch you choose for testing, at times you agree. Every change we send is recorded together with the old value, so it can be undone. |  |
 | 2 | How fresh live orders are | As live as DotPe allows: instantly if Rista can notify us, otherwise checked every minute. |  |
-| 3 | Order history | The last 30 days are shown by default. Older orders can be found by choosing dates. |  |
-| 4 | Cancelled and refunded orders | Listed separately and left out of sales totals. |  |
-| 5 | Report downloads | Excel and CSV. |  |
-| 6 | Photos over 200 KB | The website shrinks them automatically before saving, so owners do not need to resize anything. JPG, PNG and WebP accepted. |  |
-| 7 | Which side is correct for menu details | Our website. If someone changes a dish directly in Rista, the website shows the difference so a person can decide. It never overwrites silently. |  |
-| 8 | Failed changes to Rista | Retried automatically. If it still fails, both the person who made the change and the admin see it. |  |
-| 9 | New-order alert | An on-screen alert with a sound, which each person can switch off. |  |
-| 10 | Forgotten passwords | A "Forgot password" link that sends an email. The admin can still reset passwords. |  |
-| 11 | One person with several roles | Allowed. |  |
-| 12 | Customer details | We keep only what is needed to handle an order. We do not store customer phone numbers or addresses, to follow data protection rules and reduce risk. |  |
-| 13 | Item search on more screens | The same search box will also be added where sub-recipes are picked (Production) and dishes are picked (Sales). |  |
-| 14 | The Issue step | Stays as it is: the store issues exactly what the kitchen requested, so nobody picks items there. |  |
-| 15 | Hosting before real clients use it | Move from the free test setup to paid hosting with daily backups and permanent photo storage. We will share the monthly cost for approval first. |  |
-| 16 | Security before real clients use it | Remove the demo logins from the login page, require strong passwords, accept requests only from our own website, and stop putting login keys inside attachment links. |  |
-| 17 | Running alongside the old sheets | Keep the current sheets for two weeks after each part goes live, to compare results. |  |
-| 18 | Progress updates | A message whenever a part is ready to test, plus a short weekly call. |  |
+| 3 | Order steps shown | The same steps as Rista's order board: New, Accepted / Preparing, Prepared, Dispatched, Delivered, Cancelled. |  |
+| 4 | Order history | The last 30 days are shown by default. Older orders can be found by choosing dates. |  |
+| 5 | Business day | Every sale is counted on Rista's own "Business Date", so our reports always match Rista. |  |
+| 6 | Importing sales | Every night, one branch and one day at a time, which stays within Rista's limits. Admins also get a "refresh now" button. |  |
+| 7 | Cancelled and refunded orders | Taken from Rista's cancelled transactions, listed separately and left out of sales totals. |  |
+| 8 | Matching Rista dishes to our recipes | By Rista's dish code (SKU, for example GIA001). Options and add-ons are linked to the dish they were sold with. |  |
+| 9 | Report downloads | Excel and CSV. |  |
+| 10 | Photos over 200 KB | The website shrinks them automatically before saving, so owners do not need to resize anything. JPG, PNG and WebP accepted. |  |
+| 11 | Which side is correct for menu details | Our website. If someone changes a dish directly in Rista, the website shows the difference so a person can decide. It never overwrites silently. |  |
+| 12 | Channel prices | Use Rista's Price book for different Swiggy, Zomato and in-store prices, if the API allows it. |  |
+| 13 | Fallback for menu changes | If Rista's API cannot change dishes, the website prepares Rista's own "Upload Items" and "Upload Item Price" Excel files for someone to upload. |  |
+| 14 | Failed changes to Rista | Retried automatically. If it still fails, both the person who made the change and the admin see it. |  |
+| 15 | New-order alert | An on-screen alert with a sound, which each person can switch off. |  |
+| 16 | Forgotten passwords | A "Forgot password" link that sends an email. The admin can still reset passwords. |  |
+| 17 | One person with several roles | Allowed. |  |
+| 18 | Customer details | We do not store customer phone numbers or addresses, even though Rista has them on some sales, to follow data protection rules and reduce risk. |  |
+| 19 | Item search on more screens | The same search box will also be added where sub-recipes are picked (Production) and dishes are picked (Sales). |  |
+| 20 | The Issue step | Stays as it is: the store issues exactly what the kitchen requested, so nobody picks items there. |  |
+| 21 | Hosting before real clients use it | Move from the free test setup to paid hosting with daily backups and permanent photo storage. About 210 orders a day is small, so a modest plan is enough. We will share the monthly cost for approval first. |  |
+| 22 | Security before real clients use it | Remove the demo logins from the login page, require strong passwords, accept requests only from our own website, and stop putting login keys inside attachment links. |  |
+| 23 | Running alongside the old sheets | Keep the current sheets for two weeks after each part goes live, to compare results. |  |
+| 24 | Progress updates | A message whenever a part is ready to test, plus a short weekly call. |  |
 
-## 4. Working with DotPe Rista without a test account
+## 5. Working with DotPe Rista without a test account
 
 - Read first: during building we only read orders, sales and the menu from Rista. Reading cannot change anything.
-- Write carefully: menu and price changes are tried only on dishes or an outlet you choose, at an agreed time, with someone from your team watching.
+- Write carefully: menu and price changes are tried only on dishes or a branch you choose, at an agreed time, with someone from your team watching.
 - Undo is always possible: every change we send is saved with the value it replaced.
 - No surprises: nothing is sent to Rista automatically until you have tested it and agreed.
+- A fallback exists: Rista's own Excel upload for items and prices can be used if the API cannot change the menu.
 
-## 5. Words we use
+## 6. Words we use
 
 | Word | What we mean | Correction |
 | --- | --- | --- |
 | Client | A company or person who owns one or more brands and logs in to see only their own data. |  |
-| Brand | A food brand sold to customers, for example on Swiggy and Zomato. |  |
-| Outlet or branch | A place that sells a brand. In Rista this is called a "branch". |  |
+| Brand | A food brand sold to customers, for example Kochi Kurry Klub. In Rista sales this is the "Business Brand". |  |
+| Branch (outlet) | A place that cooks and sells, as set up in Rista. Today sales come from JP Nagar and Marathahalli. One branch sells many brands. |  |
 | Kitchen or location | A place in our website that holds stock: Main Store, Base Kitchen, Normal Kitchen, R&D Kitchen. |  |
-| Channel | Where a customer orders: Swiggy, Zomato, dine-in, and so on. |  |
-| Dish (menu item) | Something a customer orders, with a price. In our website today these are called "recipes". |  |
+| Channel | Where a customer orders: Swiggy, Zomato, Ownly, or in-store (POS). |  |
+| Dish (menu item) | Something a customer orders, with a price and a Rista code (SKU). In our website today these are called "recipes". |  |
 | Raw item | An ingredient we buy and stock, for example onion or oil. In our website today these are called "items". |  |
 
-## 6. Questions for your team
+## 7. Questions for your team
 
 ### A. Project basics
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
 | Q1 | Which website should these changes be made in? (The company's MongoDB account also holds another app's data, with orders, item masters, ingredient indents and menu entries, which looks like a different website. If that is the one your team uses every day, the work may belong there.)<br>A) This project, the Skope Operations Platform (test copy: skope-operations-platform.onrender.com)<br>B) A different website the team already uses (please share its link and who has its code)<br>C) Not sure | Pick one | Before start |  |
-| Q2 | Is anything missing or wrong in section 2, "What was requested"? | Short answer | Before start |  |
+| Q2 | Is anything missing or wrong in section 2, "What was requested", or in section 3, "What we learned from Rista"? | Short answer | Before start |  |
 | Q3 | Put the requests in order, most important first: R2 live orders, R3 sales reports, R4 catalog management, R5 catalog sync, R6 production and sales tracking, R7 roles. | Short answer | Before start |  |
 | Q4 | Is there a target date for the first part to be ready? | Short answer | Before start |  |
 | Q5 | Who makes the final decision when people give different answers? | Name | Before start |  |
 | Q6 | Who will test each finished part and confirm it is correct? | Name | Before start |  |
-| Q7 | Is real data ready to load (raw items, recipes, brands, suppliers, outlets)? The website has Excel upload templates for this. | Yes / No (and Send a file) | Before start |  |
-| Q8 | Who approves the monthly cost of paid hosting (decision 15)? | Name | Later |  |
+| Q7 | Is real data ready to load into our website (raw items, recipes, suppliers)? The website has Excel upload templates for this. | Yes / No (and Send a file) | Before start |  |
+| Q8 | Who approves the monthly cost of paid hosting (see the decision "Hosting before real clients use it")? | Name | Later |  |
 | Q9 | Who manages the company's domain, so the live site can have an address like ops.skopekitchens.com? | Name | Later |  |
 
-### B. Clients, brands and outlets
+### B. Clients, brands and branches
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q10 | Are the meanings in section 5, "Words we use", right? Correct any that are wrong. | Fill the table | Before start |  |
+| Q10 | Are the meanings in section 6, "Words we use", right? Correct any that are wrong. | Fill the table | Before start |  |
 | Q11 | In catalog management (R4), does "item" mean a dish customers order, not a raw ingredient? | Yes / No | Before start |  |
-| Q12 | Is an outlet (Rista branch) the same thing as one of our kitchens?<br>A) Yes, each outlet is one of our kitchens<br>B) No, outlets are separate places that receive food from our kitchens<br>C) Some are the same, some are not | Pick one | Before start |  |
-| Q13 | Fill the client, brand and outlet table in section 7. | Fill the table | Before start |  |
-| Q14 | Can one client own more than one brand? | Yes / No | Before start |  |
+| Q12 | Section 8 lists the 13 brands found in the sales data. Please add the client company that owns each brand, and correct anything wrong. | Fill the table | Before start |  |
+| Q13 | Rista has 5 branches, but all sales came from JP Nagar and Marathahalli. What are the other 3, and are they still used? | Short answer | Before start |  |
+| Q14 | Should JP Nagar and Marathahalli become locations in our website, so stock and production can be tracked there? Which of our kitchens supplies each of them? | Short answer | Before start |  |
+| Q15 | Each sale has a "Business Brand" and an "Account Name", and they do not always match (see section 3). Which one decides who owns a sale, and therefore which client can see it?<br>A) Business Brand<br>B) Account Name<br>C) Something else (please explain) | Pick one | Before start |  |
+| Q16 | What are Chicbun, Corporate Menu, ODC Event, General and The Good Fud? They appear as account names in Rista but not as brands. | Short answer | Before start |  |
+| Q17 | Can one client own more than one brand? | Yes / No | Before start |  |
 
 ### C. Roles and access
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q15 | Correct and complete the roles table in section 8. Change any cell that is wrong and fill the cells marked "?". | Fill the table | Before start |  |
-| Q16 | Which roles do you want in the end, and who will hold each one? Keep, rename or remove any of today's six roles (Admin, Procurement manager, Store keeper, Store manager, Chef, Management). | Short answer | Before start |  |
-| Q17 | "Store staff" was mentioned. Which is it?<br>A) The same as our Store keeper<br>B) A new role for staff working at an outlet<br>C) Something else (please describe) | Pick one | Before start |  |
-| Q18 | Today everyone sees all kitchens on the screens they can open. Should our staff see only the kitchen they work at?<br>A) No, staff see all kitchens (as today)<br>B) Yes, each person sees only their own kitchen<br>C) Only some roles are limited (please say which) | Pick one | Before start |  |
-| Q19 | Should our staff see only the brands they handle?<br>A) No, staff see all brands<br>B) Yes, only the brands they handle | Pick one | Before start |  |
-| Q20 | Besides live orders and sales reports, what else should a brand owner see?<br>A) Stock<br>B) Recipes and costs<br>C) Wastage<br>D) Production sent to their outlets<br>E) Nothing else | Tick | Before start |  |
-| Q21 | Who creates logins for new people?<br>A) Only the admin<br>B) The admin, and each brand owner for their own staff | Pick one | Before start |  |
-| Q22 | About how many people will log in? Give a number for each: our staff, brand owners, brand owners' staff. | Number | Later |  |
+| Q18 | Correct and complete the roles table in section 9. Change any cell that is wrong and fill the cells marked "?". | Fill the table | Before start |  |
+| Q19 | Which roles do you want in the end, and who will hold each one? Keep, rename or remove any of today's six roles (Admin, Procurement manager, Store keeper, Store manager, Chef, Management). | Short answer | Before start |  |
+| Q20 | "Store staff" was mentioned. Which is it?<br>A) The same as our Store keeper<br>B) A new role for staff at a branch, like Rista's "Dispatcher JP Nagar" and "Manager Mhalli" accounts<br>C) Something else (please describe) | Pick one | Before start |  |
+| Q21 | Today everyone sees all kitchens on the screens they can open. Should our staff see only the kitchen or branch they work at?<br>A) No, staff see all of them (as today)<br>B) Yes, each person sees only their own<br>C) Only some roles are limited (please say which) | Pick one | Before start |  |
+| Q22 | Should our staff see only the brands they handle?<br>A) No, staff see all brands<br>B) Yes, only the brands they handle | Pick one | Before start |  |
+| Q23 | Besides live orders and sales reports, what else should a brand owner see?<br>A) Stock<br>B) Recipes and costs<br>C) Wastage<br>D) Production sent to their branches<br>E) Nothing else | Tick | Before start |  |
+| Q24 | Who creates logins for new people?<br>A) Only the admin<br>B) The admin, and each brand owner for their own staff | Pick one | Before start |  |
+| Q25 | About how many people will log in? Give a number for each: our staff, brand owners, brand owners' staff. | Number | Later |  |
 
 ### D. Live orders (R2)
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q23 | Which details should be shown for each order? (Customer phone numbers and addresses are not stored, see decision 12.)<br>A) Order number<br>B) Time<br>C) Channel (Swiggy or Zomato)<br>D) Dishes and quantities<br>E) Amount<br>F) Status (new, preparing, delivered, cancelled)<br>G) Customer name | Tick | Before start |  |
-| Q24 | Should clients only look at orders, or also act on them (accept, reject, mark as ready)? | Short answer | Before start |  |
-| Q25 | Should our own team (admin, management) see live orders for all brands? | Yes / No | Before start |  |
+| Q26 | Which orders should clients see? (Ownly and in-store are 16% of sales.)<br>A) Swiggy<br>B) Zomato<br>C) Ownly<br>D) In-store (POS), including ODC | Tick | Before start |  |
+| Q27 | Which details should be shown for each order? (Customer phone numbers and addresses are not stored, see the decision "Customer details".)<br>A) Order number<br>B) Time<br>C) Channel<br>D) Dishes, options and quantities<br>E) Amount and discount<br>F) Status<br>G) Customer name<br>H) Preparation and dispatch time | Tick | Before start |  |
+| Q28 | Orders are accepted on Rista's order board today. On our website, should clients only look at orders, or also act on them?<br>A) Only look<br>B) Also accept, reject or mark as ready | Pick one | Before start |  |
+| Q29 | Should our own team (admin, management) see live orders for all brands? | Yes / No | Before start |  |
 
 ### E. Sales reports (R3)
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q26 | Please send a sales report you use today, so we can copy its columns. | Send a file | Before start |  |
-| Q27 | Should the report split sales by channel (Swiggy, Zomato, dine-in)? | Yes / No | Before start |  |
-| Q28 | Should the report show discounts, platform commission and taxes, or only the sale amount? | Short answer | Before start |  |
-| Q29 | An order placed after midnight: which day does it count for?<br>A) The calendar day it was placed<br>B) The previous business day, until a cut-off time (please give the time) | Pick one | Before start |  |
-| Q30 | Today, daily sales are typed into the website and posting them uses up ingredients from stock through the recipes. When Rista sales come in automatically, should they do the same?<br>A) Yes: Rista sales replace typing and use up stock automatically<br>B) No: Rista sales are only for reports; stock stays as it is today<br>C) Not sure yet, discuss in the walkthrough | Pick one | Before start |  |
-| Q31 | If you chose A in Q30, each Rista dish must be matched to a recipe in our website. Who can prepare that list? | Name | Before start |  |
+| Q30 | The file you downloaded ("Sales Items By Transaction") has 82 columns and one line per dish. What should clients get?<br>A) The same line-by-line detail, with fewer columns<br>B) A daily summary by channel<br>C) Both | Pick one | Before start |  |
+| Q31 | Which money columns should clients see? The data has gross amount, discounts, net amount, taxes, tax collected by Swiggy or Zomato, and packaging or other charges. Platform commission is not in it. | Short answer | Before start |  |
+| Q32 | Should a client be able to choose a branch, or always see all branches for their brand together?<br>A) Choose a branch<br>B) Always all branches together<br>C) Both | Pick one | Later |  |
+| Q33 | Today, daily sales are typed into our website and posting them uses up ingredients from stock through the recipes. When Rista sales come in automatically, should they do the same?<br>A) Yes: Rista sales replace typing and use up stock automatically<br>B) No: Rista sales are only for reports; stock stays as it is today<br>C) Not sure yet, discuss in the walkthrough | Pick one | Before start |  |
+| Q34 | Rista also has an Inventory section and records a materials cost on some sales. Where should stock be kept?<br>A) Only in our website<br>B) Only in Rista<br>C) Both (please say which one is correct when they differ) | Pick one | Before start |  |
+| Q35 | If you chose A in Q33, each of the 375 Rista dish codes needs a recipe in our website. Who can confirm those recipes? | Name | Before start |  |
 
 ### F. Catalog management (R4)
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q32 | What may brand owners do?<br>A) Add new dishes and edit existing ones<br>B) Only edit existing dishes | Pick one | Before start |  |
-| Q33 | Besides name, description, price and photo, which fields do they need?<br>A) Category<br>B) Veg or non-veg<br>C) Sizes (half, full)<br>D) Add-ons<br>E) Tax<br>F) Available or out of stock<br>G) Other (please list) | Tick | Before start |  |
-| Q34 | Should a change go live straight away, or be checked first?<br>A) Live straight away<br>B) Our admin approves it first | Pick one | Before start |  |
-| Q35 | Can the same dish have a different price on Swiggy, Zomato and dine-in? Does it differ by outlet? | Short answer | Before start |  |
-| Q36 | When a brand owner adds a new dish, must it also get a recipe in our website, so stock is used up when it sells? | Yes / No | Before start |  |
-| Q37 | If you have Swiggy or Zomato photo guidelines (shape, minimum size), please send them. | Send a file | Later |  |
+| Q36 | What may brand owners do?<br>A) Add new dishes and edit existing ones<br>B) Only edit existing dishes | Pick one | Before start |  |
+| Q37 | Besides name, description, price and photo, which fields should owners be able to change? (Rista already has all of these.)<br>A) Category<br>B) Veg, non-veg or egg<br>C) Sizes (for example Serves 1-2)<br>D) Options and add-ons<br>E) Available or out of stock<br>F) Time schedule (when a dish is shown)<br>G) Other (please list) | Tick | Before start |  |
+| Q38 | Should a change go live straight away, or be checked first?<br>A) Live straight away<br>B) Our admin approves it first | Pick one | Before start |  |
+| Q39 | Do you use Rista's Price book today? Do prices differ between Swiggy, Zomato and in-store, or between branches? | Short answer | Before start |  |
+| Q40 | When a brand owner adds a new dish, must it also get a recipe in our website, so stock is used up when it sells? | Yes / No | Before start |  |
+| Q41 | If you have Swiggy or Zomato photo guidelines (shape, minimum size), please send them. | Send a file | Later |  |
 
 ### G. Production and sales tracking (R6)
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q38 | Please send the sheet the team uses today, with real examples where the quantity sent did not match sales. | Send a file | Before start |  |
-| Q39 | What is sent to outlets?<br>A) Finished dishes, counted in portions<br>B) Prepared bases or sub-recipes, counted in kg or litres<br>C) Both | Pick one | Before start |  |
-| Q40 | Who records what was sent, and who records what arrived at the outlet? | Short answer | Before start |  |
-| Q41 | Do outlets count what is left at the end of the day? | Yes / No | Before start |  |
-| Q42 | Our website already has a daily closing that compares the expected stock with the counted stock at a kitchen. Is that similar to what you need? | Short answer | Before start |  |
-| Q43 | Above what difference should the website warn someone? Give a percentage. | Number | Later |  |
-| Q44 | Who should be warned, and how?<br>A) A message on the website<br>B) Email<br>C) WhatsApp | Tick | Later |  |
-| Q45 | List the usual reasons for a mismatch, for example wastage, staff meals, complimentary, wrong entry. | Short answer | Later |  |
+| Q42 | Please send the sheet the team uses today, with real examples where the quantity sent did not match sales. | Send a file | Before start |  |
+| Q43 | What is sent to the branches?<br>A) Finished dishes, counted in portions<br>B) Prepared bases or sub-recipes, counted in kg or litres<br>C) Both | Pick one | Before start |  |
+| Q44 | Who records what was sent, and who records what arrived at the branch? | Short answer | Before start |  |
+| Q45 | Do branches count what is left at the end of the day? | Yes / No | Before start |  |
+| Q46 | Our website already has a daily closing that compares the expected stock with the counted stock at a kitchen. Is that similar to what you need? | Short answer | Before start |  |
+| Q47 | Above what difference should the website warn someone? Give a percentage. | Number | Later |  |
+| Q48 | Who should be warned, and how?<br>A) A message on the website<br>B) Email<br>C) WhatsApp | Tick | Later |  |
+| Q49 | List the usual reasons for a mismatch, for example wastage, staff meals, complimentary, wrong entry. | Short answer | Later |  |
 
 ### H. For DotPe (please forward to your DotPe contact)
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q46 | Who is our technical contact at DotPe? | Name | Before start |  |
-| Q47 | Is there one Rista account for all brands, or a separate account for each client? | Short answer | Before start |  |
-| Q48 | Does DotPe charge for API access? If yes, how much, and who pays? | Short answer | Before start |  |
-| Q49 | When will the API documentation and access keys be shared? | Short answer | Before start |  |
-| Q50 | Can the Rista API do each of these? Please answer yes or no for each.<br>A) Read live orders<br>B) Read sales for a date range and branch<br>C) Update a dish's name, description, price, photo and availability<br>D) Set a different price per channel (Swiggy, Zomato, dine-in) | Yes / No for each | Before start |  |
-| Q51 | Can Rista notify us instantly when a new order arrives, or must we check regularly? Is there a limit on how often we may check? | Short answer | Before start |  |
-| Q52 | Since there is no test account: which dishes or which outlet may we use to try menu changes on the live account, and at what time of day? | Short answer | Before start |  |
+| Q50 | Who is our technical contact at DotPe? | Name | Before start |  |
+| Q51 | Is there one Rista account for all brands, or a separate account for each client? | Short answer | Before start |  |
+| Q52 | Does DotPe charge for API access? If yes, how much, and who pays? | Short answer | Before start |  |
+| Q53 | When will the API documentation and access keys be shared? | Short answer | Before start |  |
+| Q54 | Can the Rista API do each of these? Please answer yes or no for each.<br>A) Read live online orders and their status<br>B) Read sales item by item for a date range and branch (like "Sales Items By Transaction")<br>C) Read cancelled transactions<br>D) Update a dish's name, description, price and availability<br>E) Upload or change a dish photo<br>F) Set channel prices through the Price book | Yes / No for each | Before start |  |
+| Q55 | Can Rista notify us instantly when a new order arrives, or must we check regularly? Does the API have limits like the screen (7 days and 1 branch per report)? | Short answer | Before start |  |
+| Q56 | Since there is no test account: which dishes or which branch may we use to try menu changes on the live account, and at what time of day? | Short answer | Before start |  |
 
-## 7. Client, brand and outlet table
+## 8. Brands, branches and clients
 
-| Client (company) | Brand | Outlet / branch in Rista | Kitchen that cooks it | On Swiggy? | On Zomato? |
-| --- | --- | --- | --- | --- | --- |
-| *ABC Foods* | *Biryani Box* | *Indiranagar* | *Base Kitchen* | *Yes* | *No* |
-|  |  |  |  |  |  |
-|  |  |  |  |  |  |
-|  |  |  |  |  |  |
+Taken from the sales data (19 September to 19 October 2026). Please fill in the client company that owns each brand (question Q12) and correct anything wrong. Add any brand that is missing.
 
-## 8. Roles: who can do what
+| Brand (Rista) | Branches | Channels | Orders (31 days) | Share of sales | Client company that owns it | Correction |
+| --- | --- | --- | --- | --- | --- | --- |
+| Kochi Kurry Klub | JP Nagar, Marathahalli | Zomato, Swiggy, In-store (POS), Ownly | 4738 | 71.8% |  |  |
+| Al Mashawi Shawarma | JP Nagar, Marathahalli | Zomato, Swiggy, Ownly | 754 | 11.1% |  |  |
+| Anki's Dum Biryani | Marathahalli | Swiggy, Zomato | 445 | 4.2% |  |  |
+| Eleven Bakehouse | JP Nagar | Swiggy, Zomato, Ownly | 165 | 3.7% |  |  |
+| Me and Mo | Marathahalli | Swiggy, Zomato, Ownly | 120 | 3.4% |  |  |
+| Malabar Flavors | JP Nagar | Swiggy, Zomato, Ownly | 71 | 1.6% |  |  |
+| Pet Fresh Kitchen | JP Nagar | In-store (POS) | 7 | 1.5% |  |  |
+| Skope Cafe | JP Nagar, Marathahalli | In-store (POS) | 125 | 1.4% |  |  |
+| WrapOClock | Marathahalli | Zomato, Swiggy | 28 | 0.5% |  |  |
+| Gredo Foods | JP Nagar | Ownly, Zomato, Swiggy | 25 | 0.3% |  |  |
+| Doughpamine Kitchen | JP Nagar | Zomato, Swiggy | 18 | 0.2% |  |  |
+| The Healthy Fud | JP Nagar | Zomato, Swiggy | 17 | 0.2% |  |  |
+| GIA FOODS | Marathahalli | Zomato, Swiggy | 7 | 0.1% |  |  |
+|  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |
+
+## 9. Roles: who can do what
 
 | What the person does | Admin | Procurement manager | Store keeper | Store manager | Chef | Management | Brand owner (new) | Store staff (new?) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -214,34 +275,33 @@ Write Yes if you agree, or No with a short reason.
 | New: download sales reports | ? | ? | ? | ? | ? | ? | ? | ? |
 | New: add or edit dishes, prices and photos | ? | ? | ? | ? | ? | ? | ? | ? |
 | New: send menu changes to Rista | ? | ? | ? | ? | ? | ? | ? | ? |
-| New: record production sent to an outlet | ? | ? | ? | ? | ? | ? | ? | ? |
+| New: record production sent to a branch | ? | ? | ? | ? | ? | ? | ? | ? |
 | New: see the production and sales comparison | ? | ? | ? | ? | ? | ? | ? | ? |
 
-Note: Yes = allowed today. No = not allowed today. "?" = please fill. Today everyone sees all brands and all kitchens on the screens they can open; questions Q18 and Q19 decide whether that changes.
+Note: Yes = allowed today. No = not allowed today. "?" = please fill. Today everyone sees all brands and all kitchens on the screens they can open; questions Q21 and Q22 decide whether that changes.
 
-## 9. Files we would like from you
+## 10. Files we would like from you
 
-- [ ] The client, brand and outlet table (Q13)
-- [ ] The corrected roles table (Q15)
-- [ ] A sales report you use today (Q26)
-- [ ] The production and sales tracking sheet, with examples of mismatches (Q38)
-- [ ] Real data to load: raw items, recipes, brands, suppliers, outlets (Q7)
-- [ ] Swiggy or Zomato photo guidelines, if you have them (Q37)
-- [ ] DotPe API documentation and access keys (Q49)
+- [ ] The brand table with client companies (Q12)
+- [ ] The corrected roles table (Q18)
+- [ ] The production and sales tracking sheet, with examples of mismatches (Q42)
+- [ ] Real data to load: raw items, recipes, suppliers (Q7)
+- [ ] Swiggy or Zomato photo guidelines, if you have them (Q41)
+- [ ] DotPe API documentation and access keys (Q53)
 
-## 10. What happens next
+## 11. What happens next
 
 Can start before DotPe is ready:
 
-- Roles (R7): the final roles, and limiting people to their own kitchens and brands.
+- Roles (R7): the final roles, and limiting people to their own branches and brands.
 - Brand owner logins that only ever show their own brand.
-- Sales reports limited to the person's own brand, with date range and branch selection.
+- Sales reports limited to the person's own brand, with date range and branch selection, first from Rista files you download (like the one from 19 October), then automatically once the API is available.
 - Catalog editing on our website (R4), including automatic photo shrinking to under 200 KB.
-- Production and sales tracking (R6), using sales typed into the website until Rista sales arrive.
-- Item search on the Production and Sales screens (decision 13).
+- Production and sales tracking (R6), using sales typed into the website or loaded from Rista files until the API is available.
+- Item search on the Production and Sales screens.
 
 Waits for DotPe:
 
 - Live Swiggy and Zomato orders (R2).
-- Importing Rista sales automatically (R3).
+- Importing Rista sales automatically every night (R3).
 - Sending menu and price changes to Rista (R5).

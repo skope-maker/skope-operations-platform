@@ -4,6 +4,30 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: version 2 of the requirements document, using real Rista data
+
+Input: the Rista portal walkthrough of 19 October (screenshots of reports, downloads, catalog items, settings, order board,
+table view and new order) and one month of sales downloaded from Rista ("Sales Items By Transaction", 19 Sep to 19 Oct 2026,
+13,829 item lines, 82 columns). The analysis used only structure and totals; customer names and phone numbers in the file were
+not copied into any document.
+
+- `docs/Skope-Next-Phase-Questions-v2.docx` (17 pages) and `docs/open-questions.md`: new section 3 "What we learned from Rista"
+  (6,520 orders, about 210 a day; Rs 20.35 lakh net; Zomato 44%, Swiggy 40%, Ownly 8%, in-store 8%; 2 of 5 Rista branches have
+  sales, JP Nagar and Marathahalli; 13 brands, Kochi Kurry Klub 72%; Business Brand and Account Name do not always match; 375 dish
+  codes; Rista report limits of 7 days and 1 branch on screen; catalog, price book, order board and dine-in features).
+- Six more decisions, now that the data answers them: order steps as in Rista, Rista's Business Date as the business day, nightly
+  import one branch and one day at a time, cancellations from Rista's separate report, matching dishes by Rista SKU, channel prices
+  through Rista's Price book, and Rista's own Excel upload as a fallback for menu changes (24 decisions in total).
+- Questions rewritten with real examples (56): which field decides a sale's brand, what the extra account names are, what the
+  other 3 branches are, whether JP Nagar and Marathahalli become locations, whether Ownly and in-store orders are in scope, which
+  report columns clients get, and whether Rista's own inventory is in use. Answered questions were removed (the sample sales
+  report, the business-day cut-off).
+- The client table is now pre-filled with the 13 brands (branches, channels, orders, share of sales); the team only adds the
+  client company and corrections.
+- `.gitignore`: `docs/*.csv`, `docs/*.xlsx`, `docs/*.xls`, so real data exports with customer details never reach GitHub.
+- Version 1 (`Skope-Next-Phase-Questions.docx`) was left in place because it was open in Word; version 2 replaces it.
+Checked: the Word validator passes; a PDF preview exported through Microsoft Word was inspected.
+
 ## 2026-10-20: Word document of requirements, decisions and questions
 
 `docs/Skope-Next-Phase-Questions.docx` (14 pages, A4) is the version to send to the team; `docs/open-questions.md` now holds the

@@ -98,3 +98,8 @@ backend/uploads/
 tests/e2e/node_modules/
 tests/e2e/package-lock.json
 tests/e2e/out/
+
+# Real data exports (Rista reports etc.) contain customer details: keep them out of git
+docs/*.csv
+docs/*.xlsx
+docs/*.xls
