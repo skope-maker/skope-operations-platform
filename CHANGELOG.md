@@ -25,7 +25,7 @@ not copied into any document.
 - The client table is now pre-filled with the 13 brands (branches, channels, orders, share of sales); the team only adds the
   client company and corrections.
 - `.gitignore`: `docs/*.csv`, `docs/*.xlsx`, `docs/*.xls`, so real data exports with customer details never reach GitHub.
-- Version 1 (`Skope-Next-Phase-Questions.docx`) was left in place because it was open in Word; version 2 replaces it.
+- Version 1 (`Skope-Next-Phase-Questions.docx`) was deleted; version 2 replaces it.
 Checked: the Word validator passes; a PDF preview exported through Microsoft Word was inspected.
 
 ## 2026-10-20: Word document of requirements, decisions and questions
