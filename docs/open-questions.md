@@ -43,23 +43,26 @@ Type your answers in the shaded "Your answer" column, then send the document bac
 
 ## 3. What we learned from Rista
 
-On 19 October we went through the Rista portal with Keshava and downloaded one month of sales ("Sales Items By Transaction", 19 September to 19 October 2026). The numbers below come from that file. Customer names and phone numbers in it were not copied anywhere.
+On 19 October we went through the Rista portal with Keshava and downloaded one month of sales ("Sales Items By Transaction", 19 September to 19 October 2026). On 20 October we also downloaded the full menu ("Export Items") and one month of cancelled orders ("Cancelled Transactions"). The numbers below come from those three files. Customer names and phone numbers in them were not copied anywhere.
 
 | Topic | What we found |
 | --- | --- |
 | Orders | 6,520 orders (13,829 item lines) in 31 days, about 210 orders a day. |
 | Sales | ₹20.35 lakh net, after ₹2.30 lakh of discounts (₹22.65 lakh before discounts). |
 | Where orders come from | Zomato 44%, Swiggy 40%, Ownly 8%, in-store (POS) 8% of net sales. |
-| Branches | Rista has 5 branches. All sales came from 2 of them: JP Nagar and Marathahalli, both marked "Outlet". |
+| Branches | Rista has 5 branches. All sales came from 2 of them: JP Nagar and Marathahalli, both marked "Outlet". The menu also has prices for Jayanagar, Kalyan Nagar and Koramangala, which look like the other 3. |
 | Brands | 13 brands sell from those 2 branches. Kochi Kurry Klub alone is 72% of sales (section 8 lists all of them). |
 | Channels | 33 channel names, each tied to a brand, for example "Zomato(Kochi Kurry Klub)" or "Swiggy - Eleven Bakehouse", plus "ODC" and "Offline - JP Nagar". |
-| Brand on each sale | Each line has a "Business Brand" and an "Account Name", and they do not always match. For example, some Kochi Kurry Klub sales carry the account names Al Mashawi Shawarma, Chicbun, Corporate Menu or ODC Event. |
+| Brand on each sale | Each line has a "Business Brand" and an "Account Name", and they do not always match. For example, some Kochi Kurry Klub sales carry the account names Al Mashawi Shawarma, Chicbun, Corporate Menu or ODC Event. The Account Name is always the brand that owns the dish in the menu (all 11,498 matched lines agree), so the Business Brand seems to be the brand the customer ordered from. |
 | Dishes | 375 dish codes (SKUs such as GIA001). Lines are dishes, options or add-ons, some with sizes (100 ml, Serves 1-2). |
+| Menu (export) | 1,507 dishes (1,465 active) in 144 categories under 25 brand accounts, 196 of them with sizes. Only 340 active dishes sold in the month. 8 brands have a menu but no sales: Punjabi House, Bao Bangalore, Kritunga, Chaat-GPT, Saladeo, The Big Biryani Theory, Pynch and Swanky Spoon Society. |
+| Prices | Each dish can have a different price for each branch and channel (224 price columns, for example "JP Nagar: Swiggy(Kochi Kurry Klub)"), and can be switched off per channel. |
+| Matching sales to the menu | Every dish sold matches the menu by its code, except 2 codes (114 and GIA013, 25 lines). Options and add-ons are not in this export; they are in Rista's separate Add-Ons list. |
 | Business day | Every sale already has a Rista "Business Date", separate from the exact invoice time. |
 | Costs in Rista | Rista records a materials cost on some lines (3,629 of 13,829), so Rista's own inventory may be in use. |
 | Customer details | A name and phone number appear on 787 lines (6%). |
-| Cancelled orders | This file has none: every line is a completed sale. Rista keeps cancellations in a separate "Cancelled Transactions" report. |
-| Report limits | Rista shows a sales report on screen for at most 7 days and 1 branch. Bigger ones are emailed or downloaded, and downloads are kept for only 3 days. |
+| Cancelled orders | 77 in the month (about 1 in 85 orders, ₹27,830), none of them in the sales file. 69 were cancelled automatically by Zomato, Swiggy or Ownly (customer cancelled, no delivery partner, out of stock); 8 were cancelled by staff, mostly "Wrongly Punched". The report says how far the order got before it was cancelled. |
+| Report limits | On screen, reports show at most 7 days (1 to 8 branches, depending on the report). Downloads are not limited: one download covered a whole month and all branches. Some exports, like the menu, are emailed to datamanagement@skopekitchens.com instead of downloaded. |
 | Menu (catalog) | Dishes have a photo, veg or non-veg tag, code and price, and can be marked unavailable. Rista has bulk "Upload Items", "Upload Item Price", "Bulk Image Update" and "Export Items", a "Price book" for channel prices, a "Display Book" per channel and branch, item options and item schedules. |
 | Live order board | Online orders move through New, Accepted / Preparing, Prepared, Processed, Dispatched, Delivered and Cancelled, with advance orders and separate online and offline tabs. |
 | Dine-in | There is a table view (20 tables) and a point-of-sale screen for dine-in orders. |
@@ -70,8 +73,10 @@ On 19 October we went through the Rista portal with Keshava and downloaded one m
 - A brand is not the same as an outlet: one branch cooks many brands. Client logins must be limited by brand, not by branch.
 - We must agree which field decides who owns a sale (Business Brand or Account Name), otherwise a client could see another brand's sales (Q15).
 - Ownly and in-store sales are 16% of sales. The request mentions only Swiggy and Zomato, so we need to know whether to include them (Q26).
-- Importing sales automatically must work around Rista's limits: one branch and one day at a time, overnight.
-- Rista already supports channel prices and bulk Excel uploads, so menu changes have a fallback even if the API is limited.
+- Until the API is ready, reports can start from one monthly Rista download covering all branches.
+- Dish codes already link sales to the menu, so matching sales to our recipes is reliable.
+- Prices differ by branch and channel, so catalog editing must handle more than one price per dish (Q39).
+- Rista already supports bulk Excel uploads, so menu changes have a fallback even if the API is limited.
 - If Rista's inventory is in use, we must avoid keeping stock in two places (Q34).
 - About 210 orders a day is a small volume: modest paid hosting will be enough.
 
@@ -86,13 +91,13 @@ Write Yes if you agree, or No with a short reason.
 | 3 | Order steps shown | The same steps as Rista's order board: New, Accepted / Preparing, Prepared, Dispatched, Delivered, Cancelled. |  |
 | 4 | Order history | The last 30 days are shown by default. Older orders can be found by choosing dates. |  |
 | 5 | Business day | Every sale is counted on Rista's own "Business Date", so our reports always match Rista. |  |
-| 6 | Importing sales | Every night, one branch and one day at a time, which stays within Rista's limits. Admins also get a "refresh now" button. |  |
-| 7 | Cancelled and refunded orders | Taken from Rista's cancelled transactions, listed separately and left out of sales totals. |  |
-| 8 | Matching Rista dishes to our recipes | By Rista's dish code (SKU, for example GIA001). Options and add-ons are linked to the dish they were sold with. |  |
+| 6 | Importing sales | Until the API is ready: an admin uploads Rista's downloaded sales file (one month, all branches) and the website loads it, skipping lines it already has. Once the API is ready: every night for the previous day, plus a "refresh now" button for admins. |  |
+| 7 | Cancelled and refunded orders | Taken from Rista's "Cancelled Transactions" report, listed separately with the reason, and left out of sales totals (Rista already leaves them out). |  |
+| 8 | Matching Rista dishes to our recipes | By Rista's dish code (SKU, for example GIA001), checked against the menu export. Options and add-ons are linked to the dish they were sold with. Codes that do not match are listed for an admin to fix. |  |
 | 9 | Report downloads | Excel and CSV. |  |
 | 10 | Photos over 200 KB | The website shrinks them automatically before saving, so owners do not need to resize anything. JPG, PNG and WebP accepted. |  |
 | 11 | Which side is correct for menu details | Our website. If someone changes a dish directly in Rista, the website shows the difference so a person can decide. It never overwrites silently. |  |
-| 12 | Channel prices | Use Rista's Price book for different Swiggy, Zomato and in-store prices, if the API allows it. |  |
+| 12 | Channel prices | Keep one price per branch and channel, exactly as Rista does, and send them through Rista's price settings if the API allows it. |  |
 | 13 | Fallback for menu changes | If Rista's API cannot change dishes, the website prepares Rista's own "Upload Items" and "Upload Item Price" Excel files for someone to upload. |  |
 | 14 | Failed changes to Rista | Retried automatically. If it still fails, both the person who made the change and the admin see it. |  |
 | 15 | New-order alert | An on-screen alert with a sound, which each person can switch off. |  |
@@ -119,7 +124,7 @@ Write Yes if you agree, or No with a short reason.
 | Word | What we mean | Correction |
 | --- | --- | --- |
 | Client | A company or person who owns one or more brands and logs in to see only their own data. |  |
-| Brand | A food brand sold to customers, for example Kochi Kurry Klub. In Rista sales this is the "Business Brand". |  |
+| Brand | A food brand sold to customers, for example Kochi Kurry Klub. Rista sales carry both a "Business Brand" and an "Account Name" (see Q15). |  |
 | Branch (outlet) | A place that cooks and sells, as set up in Rista. Today sales come from JP Nagar and Marathahalli. One branch sells many brands. |  |
 | Kitchen or location | A place in our website that holds stock: Main Store, Base Kitchen, Normal Kitchen, R&D Kitchen. |  |
 | Channel | Where a customer orders: Swiggy, Zomato, Ownly, or in-store (POS). |  |
@@ -148,11 +153,11 @@ Write Yes if you agree, or No with a short reason.
 | --- | --- | --- | --- | --- |
 | Q10 | Are the meanings in section 6, "Words we use", right? Correct any that are wrong. | Fill the table | Before start |  |
 | Q11 | In catalog management (R4), does "item" mean a dish customers order, not a raw ingredient? | Yes / No | Before start |  |
-| Q12 | Section 8 lists the 13 brands found in the sales data. Please add the client company that owns each brand, and correct anything wrong. | Fill the table | Before start |  |
-| Q13 | Rista has 5 branches, but all sales came from JP Nagar and Marathahalli. What are the other 3, and are they still used? | Short answer | Before start |  |
+| Q12 | Section 8 lists the 13 brands with sales and the 8 brands that have a menu but no sales this month. Please add the client company that owns each brand, mark any brand that has stopped, and correct anything wrong. | Fill the table | Before start |  |
+| Q13 | Rista has 5 branches, but all sales came from JP Nagar and Marathahalli. The menu also has prices for Jayanagar, Kalyan Nagar and Koramangala. Are those the other 3, and are any of them still used or opening again? | Short answer | Before start |  |
 | Q14 | Should JP Nagar and Marathahalli become locations in our website, so stock and production can be tracked there? Which of our kitchens supplies each of them? | Short answer | Before start |  |
-| Q15 | Each sale has a "Business Brand" and an "Account Name", and they do not always match (see section 3). Which one decides who owns a sale, and therefore which client can see it?<br>A) Business Brand<br>B) Account Name<br>C) Something else (please explain) | Pick one | Before start |  |
-| Q16 | What are Chicbun, Corporate Menu, ODC Event, General and The Good Fud? They appear as account names in Rista but not as brands. | Short answer | Before start |  |
+| Q15 | Each sale has a "Business Brand" and an "Account Name", and they do not always match (see section 3). The data suggests the Business Brand is the brand the customer ordered from, and the Account Name is the brand that owns the dish. Which one decides who owns a sale, and therefore which client can see it?<br>A) Business Brand (the brand the customer ordered from)<br>B) Account Name (the brand that owns the dish)<br>C) Something else (please explain) | Pick one | Before start |  |
+| Q16 | What are Chicbun, Corporate Menu, ODC Event, General and The Good Fud? They appear as account names in Rista but never as the brand of a sale. Is "The Good Fud" the same as "The Healthy Fud"? | Short answer | Before start |  |
 | Q17 | Can one client own more than one brand? | Yes / No | Before start |  |
 
 ### C. Roles and access
@@ -195,7 +200,7 @@ Write Yes if you agree, or No with a short reason.
 | Q36 | What may brand owners do?<br>A) Add new dishes and edit existing ones<br>B) Only edit existing dishes | Pick one | Before start |  |
 | Q37 | Besides name, description, price and photo, which fields should owners be able to change? (Rista already has all of these.)<br>A) Category<br>B) Veg, non-veg or egg<br>C) Sizes (for example Serves 1-2)<br>D) Options and add-ons<br>E) Available or out of stock<br>F) Time schedule (when a dish is shown)<br>G) Other (please list) | Tick | Before start |  |
 | Q38 | Should a change go live straight away, or be checked first?<br>A) Live straight away<br>B) Our admin approves it first | Pick one | Before start |  |
-| Q39 | Do you use Rista's Price book today? Do prices differ between Swiggy, Zomato and in-store, or between branches? | Short answer | Before start |  |
+| Q39 | The menu has a separate price for each branch and channel (for example, at JP Nagar the Puttu + Kadala Curry Combo is ₹129 for takeaway, ₹149 in-store and ₹185 on Swiggy and Zomato). How should brand owners change prices?<br>A) Edit each branch and channel price separately<br>B) Edit one base price; channel prices follow a fixed rule (please give the rule)<br>C) Only our admin changes prices | Pick one | Before start |  |
 | Q40 | When a brand owner adds a new dish, must it also get a recipe in our website, so stock is used up when it sells? | Yes / No | Before start |  |
 | Q41 | If you have Swiggy or Zomato photo guidelines (shape, minimum size), please send them. | Send a file | Later |  |
 
@@ -220,13 +225,13 @@ Write Yes if you agree, or No with a short reason.
 | Q51 | Is there one Rista account for all brands, or a separate account for each client? | Short answer | Before start |  |
 | Q52 | Does DotPe charge for API access? If yes, how much, and who pays? | Short answer | Before start |  |
 | Q53 | When will the API documentation and access keys be shared? | Short answer | Before start |  |
-| Q54 | Can the Rista API do each of these? Please answer yes or no for each.<br>A) Read live online orders and their status<br>B) Read sales item by item for a date range and branch (like "Sales Items By Transaction")<br>C) Read cancelled transactions<br>D) Update a dish's name, description, price and availability<br>E) Upload or change a dish photo<br>F) Set channel prices through the Price book | Yes / No for each | Before start |  |
-| Q55 | Can Rista notify us instantly when a new order arrives, or must we check regularly? Does the API have limits like the screen (7 days and 1 branch per report)? | Short answer | Before start |  |
+| Q54 | Can the Rista API do each of these? Please answer yes or no for each.<br>A) Read live online orders and their status<br>B) Read sales item by item for a date range and branch (like "Sales Items By Transaction")<br>C) Read cancelled transactions<br>D) Update a dish's name, description, price and availability<br>E) Upload or change a dish photo<br>F) Set a different price for each branch and channel<br>G) Read the full menu (today "Export Items" only arrives by email) | Yes / No for each | Before start |  |
+| Q55 | Can Rista notify us instantly when a new order arrives, or must we check regularly? Does the API have limits on dates or branches, like the screen (7 days per report)? | Short answer | Before start |  |
 | Q56 | Since there is no test account: which dishes or which branch may we use to try menu changes on the live account, and at what time of day? | Short answer | Before start |  |
 
 ## 8. Brands, branches and clients
 
-Taken from the sales data (19 September to 19 October 2026). Please fill in the client company that owns each brand (question Q12) and correct anything wrong. Add any brand that is missing.
+Taken from the sales data (19 September to 19 October 2026) and the menu export. The last 8 brands have a menu in Rista but no sales this month. Please fill in the client company that owns each brand (question Q12), mark any brand that has stopped, and correct anything wrong. Add any brand that is missing.
 
 | Brand (Rista) | Branches | Channels | Orders (31 days) | Share of sales | Client company that owns it | Correction |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -243,6 +248,14 @@ Taken from the sales data (19 September to 19 October 2026). Please fill in the 
 | Doughpamine Kitchen | JP Nagar | Zomato, Swiggy | 18 | 0.2% |  |  |
 | The Healthy Fud | JP Nagar | Zomato, Swiggy | 17 | 0.2% |  |  |
 | GIA FOODS | Marathahalli | Zomato, Swiggy | 7 | 0.1% |  |  |
+| Punjabi House | None this month | Menu only (169 dishes), no sales | 0 | 0% |  |  |
+| Bao Bangalore | None this month | Menu only (67 dishes), no sales | 0 | 0% |  |  |
+| Kritunga | None this month | Menu only (45 dishes), no sales | 0 | 0% |  |  |
+| Chaat-GPT | None this month | Menu only (43 dishes), no sales | 0 | 0% |  |  |
+| Saladeo | None this month | Menu only (11 dishes), no sales | 0 | 0% |  |  |
+| The Big Biryani Theory | None this month | Menu only (10 dishes), no sales | 0 | 0% |  |  |
+| Pynch | None this month | Menu only (8 dishes), no sales | 0 | 0% |  |  |
+| Swanky Spoon Society | None this month | Menu only (5 dishes), no sales | 0 | 0% |  |  |
 |  |  |  |  |  |  |  |
 |  |  |  |  |  |  |  |
 |  |  |  |  |  |  |  |
@@ -295,7 +308,7 @@ Can start before DotPe is ready:
 
 - Roles (R7): the final roles, and limiting people to their own branches and brands.
 - Brand owner logins that only ever show their own brand.
-- Sales reports limited to the person's own brand, with date range and branch selection, first from Rista files you download (like the one from 19 October), then automatically once the API is available.
+- Sales reports limited to the person's own brand, with date range and branch selection, first from a monthly Rista download covering all branches, then automatically once the API is available. Cancelled orders shown separately.
 - Catalog editing on our website (R4), including automatic photo shrinking to under 200 KB.
 - Production and sales tracking (R6), using sales typed into the website or loaded from Rista files until the API is available.
 - Item search on the Production and Sales screens.

@@ -4,6 +4,24 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: requirements document v2 updated with the Rista menu and cancellations
+
+Input: two more Rista exports downloaded on 20 October, the full menu ("Export Items", emailed by Rista, 1,507 dishes and
+386 columns) and one month of "Cancelled Transactions" (77 orders, all branches in one download). Both stay out of git
+(`docs/*.csv`); only totals were used.
+
+- Section 3 corrected: report limits apply only on screen (7 days, 1 to 8 branches); downloads covered a whole month and all
+  branches; some exports are emailed to the account's mailbox. New facts on the menu (25 brand accounts, 144 categories,
+  8 brands with a menu but no sales), prices per branch and channel (224 price columns), matching (every sold dish matches the
+  menu by code except 2), and cancellations (77, about 1 in 85 orders, mostly cancelled by Zomato/Swiggy/Ownly).
+- Account Name on a sale always equals the dish's brand account in the menu, so Q15 now explains the two choices.
+- Decisions changed: importing sales starts from an uploaded monthly Rista download (nightly via the API later); channel
+  prices kept per branch and channel as in Rista; matching checked against the menu export.
+- Questions sharpened: Q12 (8 menu-only brands added to the brand table), Q13 (Jayanagar, Kalyan Nagar, Koramangala),
+  Q16 (The Good Fud vs The Healthy Fud), Q39 (how owners change per-channel prices, with a real example), Q54 (read the menu),
+  Q55 (API limits).
+Checked: the Word validator passes; the Word PDF preview of section 3 and the brand table was inspected (18 pages).
+
 ## 2026-10-20: version 2 of the requirements document, using real Rista data
 
 Input: the Rista portal walkthrough of 19 October (screenshots of reports, downloads, catalog items, settings, order board,
