@@ -20,6 +20,8 @@ Input: two more Rista exports downloaded on 20 October, the full menu ("Export I
 - Questions sharpened: Q12 (8 menu-only brands added to the brand table), Q13 (Jayanagar, Kalyan Nagar, Koramangala),
   Q16 (The Good Fud vs The Healthy Fud), Q39 (how owners change per-channel prices, with a real example), Q54 (read the menu),
   Q55 (API limits).
+- Q1 answered by Youvraj: the new features go into this app. It is now decision 1 (25 decisions); Q1 only asks, for later,
+  which other app owns the extra collections in the company's database.
 Checked: the Word validator passes; the Word PDF preview of section 3 and the brand table was inspected (18 pages).
 
 ## 2026-10-20: version 2 of the requirements document, using real Rista data

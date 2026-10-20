@@ -86,30 +86,31 @@ Write Yes if you agree, or No with a short reason.
 
 | No. | Topic | Our decision | Agree? |
 | --- | --- | --- | --- |
-| 1 | Working on the live DotPe account | There is no test account, so we start by only reading from Rista (orders, sales, menu). We change the menu only on dishes or a branch you choose for testing, at times you agree. Every change we send is recorded together with the old value, so it can be undone. |  |
-| 2 | How fresh live orders are | As live as DotPe allows: instantly if Rista can notify us, otherwise checked every minute. |  |
-| 3 | Order steps shown | The same steps as Rista's order board: New, Accepted / Preparing, Prepared, Dispatched, Delivered, Cancelled. |  |
-| 4 | Order history | The last 30 days are shown by default. Older orders can be found by choosing dates. |  |
-| 5 | Business day | Every sale is counted on Rista's own "Business Date", so our reports always match Rista. |  |
-| 6 | Importing sales | Until the API is ready: an admin uploads Rista's downloaded sales file (one month, all branches) and the website loads it, skipping lines it already has. Once the API is ready: every night for the previous day, plus a "refresh now" button for admins. |  |
-| 7 | Cancelled and refunded orders | Taken from Rista's "Cancelled Transactions" report, listed separately with the reason, and left out of sales totals (Rista already leaves them out). |  |
-| 8 | Matching Rista dishes to our recipes | By Rista's dish code (SKU, for example GIA001), checked against the menu export. Options and add-ons are linked to the dish they were sold with. Codes that do not match are listed for an admin to fix. |  |
-| 9 | Report downloads | Excel and CSV. |  |
-| 10 | Photos over 200 KB | The website shrinks them automatically before saving, so owners do not need to resize anything. JPG, PNG and WebP accepted. |  |
-| 11 | Which side is correct for menu details | Our website. If someone changes a dish directly in Rista, the website shows the difference so a person can decide. It never overwrites silently. |  |
-| 12 | Channel prices | Keep one price per branch and channel, exactly as Rista does, and send them through Rista's price settings if the API allows it. |  |
-| 13 | Fallback for menu changes | If Rista's API cannot change dishes, the website prepares Rista's own "Upload Items" and "Upload Item Price" Excel files for someone to upload. |  |
-| 14 | Failed changes to Rista | Retried automatically. If it still fails, both the person who made the change and the admin see it. |  |
-| 15 | New-order alert | An on-screen alert with a sound, which each person can switch off. |  |
-| 16 | Forgotten passwords | A "Forgot password" link that sends an email. The admin can still reset passwords. |  |
-| 17 | One person with several roles | Allowed. |  |
-| 18 | Customer details | We do not store customer phone numbers or addresses, even though Rista has them on some sales, to follow data protection rules and reduce risk. |  |
-| 19 | Item search on more screens | The same search box will also be added where sub-recipes are picked (Production) and dishes are picked (Sales). |  |
-| 20 | The Issue step | Stays as it is: the store issues exactly what the kitchen requested, so nobody picks items there. |  |
-| 21 | Hosting before real clients use it | Move from the free test setup to paid hosting with daily backups and permanent photo storage. About 210 orders a day is small, so a modest plan is enough. We will share the monthly cost for approval first. |  |
-| 22 | Security before real clients use it | Remove the demo logins from the login page, require strong passwords, accept requests only from our own website, and stop putting login keys inside attachment links. |  |
-| 23 | Running alongside the old sheets | Keep the current sheets for two weeks after each part goes live, to compare results. |  |
-| 24 | Progress updates | A message whenever a part is ready to test, plus a short weekly call. |  |
+| 1 | Where the new features are built | In this app, the Skope Operations Platform (test copy: skope-operations-platform.onrender.com), on top of what already works. |  |
+| 2 | Working on the live DotPe account | There is no test account, so we start by only reading from Rista (orders, sales, menu). We change the menu only on dishes or a branch you choose for testing, at times you agree. Every change we send is recorded together with the old value, so it can be undone. |  |
+| 3 | How fresh live orders are | As live as DotPe allows: instantly if Rista can notify us, otherwise checked every minute. |  |
+| 4 | Order steps shown | The same steps as Rista's order board: New, Accepted / Preparing, Prepared, Dispatched, Delivered, Cancelled. |  |
+| 5 | Order history | The last 30 days are shown by default. Older orders can be found by choosing dates. |  |
+| 6 | Business day | Every sale is counted on Rista's own "Business Date", so our reports always match Rista. |  |
+| 7 | Importing sales | Until the API is ready: an admin uploads Rista's downloaded sales file (one month, all branches) and the website loads it, skipping lines it already has. Once the API is ready: every night for the previous day, plus a "refresh now" button for admins. |  |
+| 8 | Cancelled and refunded orders | Taken from Rista's "Cancelled Transactions" report, listed separately with the reason, and left out of sales totals (Rista already leaves them out). |  |
+| 9 | Matching Rista dishes to our recipes | By Rista's dish code (SKU, for example GIA001), checked against the menu export. Options and add-ons are linked to the dish they were sold with. Codes that do not match are listed for an admin to fix. |  |
+| 10 | Report downloads | Excel and CSV. |  |
+| 11 | Photos over 200 KB | The website shrinks them automatically before saving, so owners do not need to resize anything. JPG, PNG and WebP accepted. |  |
+| 12 | Which side is correct for menu details | Our website. If someone changes a dish directly in Rista, the website shows the difference so a person can decide. It never overwrites silently. |  |
+| 13 | Channel prices | Keep one price per branch and channel, exactly as Rista does, and send them through Rista's price settings if the API allows it. |  |
+| 14 | Fallback for menu changes | If Rista's API cannot change dishes, the website prepares Rista's own "Upload Items" and "Upload Item Price" Excel files for someone to upload. |  |
+| 15 | Failed changes to Rista | Retried automatically. If it still fails, both the person who made the change and the admin see it. |  |
+| 16 | New-order alert | An on-screen alert with a sound, which each person can switch off. |  |
+| 17 | Forgotten passwords | A "Forgot password" link that sends an email. The admin can still reset passwords. |  |
+| 18 | One person with several roles | Allowed. |  |
+| 19 | Customer details | We do not store customer phone numbers or addresses, even though Rista has them on some sales, to follow data protection rules and reduce risk. |  |
+| 20 | Item search on more screens | The same search box will also be added where sub-recipes are picked (Production) and dishes are picked (Sales). |  |
+| 21 | The Issue step | Stays as it is: the store issues exactly what the kitchen requested, so nobody picks items there. |  |
+| 22 | Hosting before real clients use it | Move from the free test setup to paid hosting with daily backups and permanent photo storage. About 210 orders a day is small, so a modest plan is enough. We will share the monthly cost for approval first. |  |
+| 23 | Security before real clients use it | Remove the demo logins from the login page, require strong passwords, accept requests only from our own website, and stop putting login keys inside attachment links. |  |
+| 24 | Running alongside the old sheets | Keep the current sheets for two weeks after each part goes live, to compare results. |  |
+| 25 | Progress updates | A message whenever a part is ready to test, plus a short weekly call. |  |
 
 ## 5. Working with DotPe Rista without a test account
 
@@ -137,7 +138,7 @@ Write Yes if you agree, or No with a short reason.
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q1 | Which website should these changes be made in? (The company's MongoDB account also holds another app's data, with orders, item masters, ingredient indents and menu entries, which looks like a different website. If that is the one your team uses every day, the work may belong there.)<br>A) This project, the Skope Operations Platform (test copy: skope-operations-platform.onrender.com)<br>B) A different website the team already uses (please share its link and who has its code)<br>C) Not sure | Pick one | Before start |  |
+| Q1 | The company's database account also holds data from another app (orders, item masters, ingredient indents, menu entries). Which app is that, and is it still in use? We ask so we do not rebuild something that already exists. | Short answer | Later |  |
 | Q2 | Is anything missing or wrong in section 2, "What was requested", or in section 3, "What we learned from Rista"? | Short answer | Before start |  |
 | Q3 | Put the requests in order, most important first: R2 live orders, R3 sales reports, R4 catalog management, R5 catalog sync, R6 production and sales tracking, R7 roles. | Short answer | Before start |  |
 | Q4 | Is there a target date for the first part to be ready? | Short answer | Before start |  |
