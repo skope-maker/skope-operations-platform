@@ -1,6 +1,6 @@
 # Skope Operations Platform: Next phase: requirements, decisions and questions
 
-*Prepared by Youvraj · 20 October 2026 · Version 2*
+*Prepared by Youvraj · 20 October 2026 · Version 2, with the progress so far*
 
 > The Word version (`Skope-Next-Phase-Questions-v2.docx`) is the one sent to the team. This file holds the same content so it can be read and diffed in git. Both are generated from one source.
 
@@ -10,7 +10,9 @@ The team asked for seven changes to the operations website. Before building them
 
 This version also uses what we learned on 19 October from the Rista portal and from one month of Rista sales data (section 3). Several questions are now answered from that data, and the remaining ones are more specific.
 
-The document has four parts: what was requested, what we learned from Rista, the technical decisions we have already made (you only agree or disagree), and the questions only your team can answer.
+Some of the work needed no answers, so it is already built and running on the test website. Section 2 explains it in plain words and shows how to try it yourself.
+
+The document covers what was requested and what is already working, what we learned from Rista, the technical decisions we have already made (you only agree or disagree), and the questions only your team can answer.
 
 ### How to answer
 
@@ -35,11 +37,38 @@ Type your answers in the shaded "Your answer" column, then send the document bac
 | --- | --- | --- | --- |
 | R1 | Item search | Search wherever users pick an item, including Kitchen Intent and Issue, reusing one search box everywhere. | Done |
 | R2 | Live orders | Each client sees live Swiggy and Zomato orders for their own brand only, taken from DotPe Rista. | Needs answers and DotPe access |
-| R3 | Sales reports | Bring Rista sales data into the website. Choose a date range and a branch. Clients download reports. Each client sees and downloads only their own brand. | Needs answers and DotPe access |
+| R3 | Sales reports | Bring Rista sales data into the website. Choose a date range and a branch. Clients download reports. Each client sees and downloads only their own brand. | Partly built: the admin view works from Rista files; the client view needs answers |
 | R4 | Catalog management | Brand owners add dishes and edit name, description, price and photo on our website without opening Rista. Photos stay under 200 KB. | Needs answers |
-| R5 | Catalog sync | Changes made on our website are sent to Rista and from there to Swiggy and Zomato, including channel-specific prices if Rista allows it. | Needs answers and DotPe access |
+| R5 | Catalog sync | Changes made on our website are sent to Rista and from there to Swiggy and Zomato, including channel-specific prices if Rista allows it. | Partly built: the Rista menu can be viewed; sending changes needs DotPe access |
 | R6 | Production and sales tracking | Record what is sent to each outlet and compare it with sales, so the team can investigate the mismatches they track by hand today. | Needs answers |
 | R7 | Role-based access | Admin plus about five or six other roles, including store staff, each limited to the right screens and data. | Needs answers |
+
+### What is already working
+
+Some of the work did not need any answers or DotPe access, so it is already built and running on the test website (skope-operations-platform.onrender.com). Here is what it does, in plain words.
+
+| What | What it does |
+| --- | --- |
+| Search boxes | Wherever someone has to pick something (an ingredient, a dish, a prepared base), they type a few letters and the website shows the matches, instead of scrolling a long list. It works the same way on every screen, also on a phone. The last two places, Sales and Production, were added this week. |
+| Rista Sales page | A new page called "Rista Sales" in the left menu. It shows the sales from Rista: how much was sold, how many orders, and the split by brand, branch, Swiggy, Zomato, Ownly and in-store, plus the dishes that sell most. You can choose the dates, a branch or a brand, and download the result as an Excel or CSV file. |
+| Bringing Rista data in | Until DotPe gives us access, an admin downloads three reports from Rista (sales, cancelled orders and the menu) and uploads them to the website. It takes a few seconds. Uploading the same days again does not count them twice. The website does not keep customer names or phone numbers. |
+| Cancelled orders | The 77 cancelled orders of the month (about ₹27,800) are listed with the reason and who cancelled them: Zomato, Swiggy or Ownly automatically, or a staff member. They are kept apart from sales, so the sales totals stay correct. |
+| The Rista menu | All 1,507 dishes, with the price for every branch and channel. The page also warns about dish codes that were sold but are missing from the menu file (2 found), and shows which sold dishes have no recipe in our website yet. |
+| Checked against Rista | For 19 September to 19 October, the totals on our page are exactly the totals in the Rista download: 6,520 orders and ₹20,35,097.62 net sales. |
+| Who can see it | Admin and Management can open the Rista Sales page. Only the admin can upload files. The other roles do not see it. |
+
+### How to try it
+
+- Open the test website, log in with the admin login we shared earlier, and click "Rista Sales" in the left menu. The sales of 19 September to 19 October are already loaded.
+- Try the filters, open the Cancelled orders and Menu tabs, and download a file.
+- If any number looks wrong to you, please tell us (question Q2).
+
+### Not built yet
+
+- Logins for brand owners that show only their own brand: waiting for Q12, Q15 and Q18.
+- Adding and editing dishes, prices and photos on our website: waiting for Q36 to Q39.
+- Production and sales tracking: waiting for your tracking sheet (Q42).
+- Live Swiggy and Zomato orders, and sending menu changes to Rista: waiting for DotPe access.
 
 ## 3. What we learned from Rista
 
@@ -157,7 +186,7 @@ Write Yes if you agree, or No with a short reason.
 | Q12 | Section 8 lists the 13 brands with sales and the 8 brands that have a menu but no sales this month. Please add the client company that owns each brand, mark any brand that has stopped, and correct anything wrong. | Fill the table | Before start |  |
 | Q13 | Rista has 5 branches, but all sales came from JP Nagar and Marathahalli. The menu also has prices for Jayanagar, Kalyan Nagar and Koramangala. Are those the other 3, and are any of them still used or opening again? | Short answer | Before start |  |
 | Q14 | Should JP Nagar and Marathahalli become locations in our website, so stock and production can be tracked there? Which of our kitchens supplies each of them? | Short answer | Before start |  |
-| Q15 | Each sale has a "Business Brand" and an "Account Name", and they do not always match (see section 3). The data suggests the Business Brand is the brand the customer ordered from, and the Account Name is the brand that owns the dish. Which one decides who owns a sale, and therefore which client can see it?<br>A) Business Brand (the brand the customer ordered from)<br>B) Account Name (the brand that owns the dish)<br>C) Something else (please explain) | Pick one | Before start |  |
+| Q15 | Each sale has a "Business Brand" and an "Account Name", and they do not always match (see section 3). The data suggests the Business Brand is the brand the customer ordered from, and the Account Name is the brand that owns the dish. Our Rista Sales page has a switch to show either one. Which one decides who owns a sale, and therefore which client can see it?<br>A) Business Brand (the brand the customer ordered from)<br>B) Account Name (the brand that owns the dish)<br>C) Something else (please explain) | Pick one | Before start |  |
 | Q16 | What are Chicbun, Corporate Menu, ODC Event, General and The Good Fud? They appear as account names in Rista but never as the brand of a sale. Is "The Good Fud" the same as "The Healthy Fud"? | Short answer | Before start |  |
 | Q17 | Can one client own more than one brand? | Yes / No | Before start |  |
 
@@ -187,7 +216,7 @@ Write Yes if you agree, or No with a short reason.
 
 | No. | Question | How to answer | Needed | Your answer |
 | --- | --- | --- | --- | --- |
-| Q30 | The file you downloaded ("Sales Items By Transaction") has 82 columns and one line per dish. What should clients get?<br>A) The same line-by-line detail, with fewer columns<br>B) A daily summary by channel<br>C) Both | Pick one | Before start |  |
+| Q30 | The file you downloaded ("Sales Items By Transaction") has 82 columns and one line per dish. Our Rista Sales page already shows a summary and lets you download the lines. What should clients get?<br>A) The same line-by-line detail, with fewer columns<br>B) A daily summary by channel<br>C) Both | Pick one | Before start |  |
 | Q31 | Which money columns should clients see? The data has gross amount, discounts, net amount, taxes, tax collected by Swiggy or Zomato, and packaging or other charges. Platform commission is not in it. | Short answer | Before start |  |
 | Q32 | Should a client be able to choose a branch, or always see all branches for their brand together?<br>A) Choose a branch<br>B) Always all branches together<br>C) Both | Pick one | Later |  |
 | Q33 | Today, daily sales are typed into our website and posting them uses up ingredients from stock through the recipes. When Rista sales come in automatically, should they do the same?<br>A) Yes: Rista sales replace typing and use up stock automatically<br>B) No: Rista sales are only for reports; stock stays as it is today<br>C) Not sure yet, discuss in the walkthrough | Pick one | Before start |  |
@@ -309,10 +338,9 @@ Can start before DotPe is ready:
 
 - Roles (R7): the final roles, and limiting people to their own branches and brands.
 - Brand owner logins that only ever show their own brand.
-- Sales reports limited to the person's own brand, with date range and branch selection, first from a monthly Rista download covering all branches, then automatically once the API is available. Cancelled orders shown separately.
+- Showing the Rista Sales page to brand owners, limited to their own brand, once the brand questions are answered (it works today for admin and management). Later it will update automatically once the API is available.
 - Catalog editing on our website (R4), including automatic photo shrinking to under 200 KB.
 - Production and sales tracking (R6), using sales typed into the website or loaded from Rista files until the API is available.
-- Item search on the Production and Sales screens.
 
 Waits for DotPe:
 

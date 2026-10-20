@@ -4,6 +4,18 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: requirements document updated with what is already built
+
+`docs/Skope-Next-Phase-Questions-v2.docx` (19 pages) and `docs/open-questions.md` regenerated.
+- Section 2 now has plain-language parts for non-technical readers: "What is already working" (search boxes, the Rista Sales
+  page, loading Rista files, cancelled orders, the Rista menu, the check against Rista's totals, who can see it), "How to try
+  it" and "Not built yet" (each with the questions it waits for).
+- Request statuses: R1 Done; R3 and R5 "Partly built"; the others unchanged.
+- Q15 and Q30 mention the new page (the switch between the two brand meanings, the summary and line download).
+- "What happens next": item search removed (done); sales reports now say the page will be shown to brand owners once the
+  brand questions are answered.
+Checked: the Word validator passes; the Word PDF preview of pages 2 and 3 was inspected.
+
 ## 2026-10-20: Rista Sales screen (sales, cancelled orders, menu from Rista downloads) and search on two more screens
 
 Built the parts of the next phase that do not wait for the team's answers or the DotPe API. Brand filters for client logins,
