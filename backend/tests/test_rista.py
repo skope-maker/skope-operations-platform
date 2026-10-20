@@ -198,11 +198,13 @@ def test_cancelled(admin, loaded):
 def test_menu_and_checks(admin, loaded):
     _, _, m = loaded
     assert m['rows'] == 3 and m['active'] == 2 and m['accounts'] == 2 and m['price_columns'] == 4
-    rows = {r['sku']: r for r in admin.get(f'{API}/rista/menu', timeout=30).json()}
+    page = admin.get(f'{API}/rista/menu', timeout=30).json()
+    assert page['total'] == 3 and page['pages'] == 1 and page['page'] == 1
+    rows = {r['sku']: r for r in page['rows']}
     assert rows['KKK1']['price_min'] == 99 and rows['KKK1']['price_max'] == 120 and rows['KKK1']['sold_qty'] == 2
     assert rows['SHW1']['sold_qty'] == 4 and rows['OLD1']['active'] is False
     active = admin.get(f'{API}/rista/menu', params={'status': 'active', 'q': 'appam'}, timeout=30).json()
-    assert [r['sku'] for r in active] == ['KKK1']
+    assert [r['sku'] for r in active['rows']] == ['KKK1'] and active['total'] == 1
     one = admin.get(f'{API}/rista/menu/kkk1', timeout=30).json()
     assert {'branch': 'JP Nagar', 'channel': 'Offline - JP Nagar', 'price': 99} in one['prices']
     checks = admin.get(f'{API}/rista/menu/checks', timeout=30).json()
@@ -232,10 +234,80 @@ def test_import_history(admin, loaded):
     assert rows[0]['imported_by']
 
 
+def test_menu_paging(admin, loaded):
+    url = f'{API}/rista/menu'
+    first = admin.get(url, params={'page_size': 2}, timeout=30).json()
+    assert first['total'] == 3 and first['pages'] == 2 and first['page'] == 1 and len(first['rows']) == 2
+    second = admin.get(url, params={'page_size': 2, 'page': 2}, timeout=30).json()
+    assert second['page'] == 2 and len(second['rows']) == 1
+    assert {r['sku'] for r in first['rows']} | {r['sku'] for r in second['rows']} == {'KKK1', 'SHW1', 'OLD1'}
+    assert admin.get(url, params={'page_size': 2, 'page': 99}, timeout=30).json()['page'] == 2  # past the end: last page
+    assert admin.get(url, params={'page_size': 0}, timeout=30).json()['page_size'] == 1
+    assert admin.get(url, params={'page_size': 5000}, timeout=30).json()['page_size'] == 200
+    nothing = admin.get(url, params={'q': 'zzzz'}, timeout=30).json()
+    assert nothing['total'] == 0 and nothing['rows'] == [] and nothing['pages'] == 1
+
+
+def test_menu_download_holds_every_dish(admin, loaded):
+    r = admin.get(f'{API}/rista/menu/export', params={'format': 'csv', 'status': 'active'}, timeout=30)
+    assert r.status_code == 200
+    body = r.content.decode('utf-8-sig')
+    assert 'Appam' in body and 'Shawarma' in body and 'Old Roll' not in body and 'Recipe In This App' in body
+    x = admin.get(f'{API}/rista/menu/export', params={'format': 'xlsx'}, timeout=30)
+    rows = list(load_workbook(io.BytesIO(x.content)).active.iter_rows(values_only=True))
+    assert len(rows) == 4 and rows[0][0] == 'SKU'
+    assert admin.get(f'{API}/rista/menu/export', params={'format': 'pdf'}, timeout=30).status_code == 400
+
+
+def test_reports_refresh_after_a_new_file(admin, loaded):
+    summary = f'{API}/rista/sales/summary'
+    assert admin.get(summary, timeout=30).json()['totals']['net'] == 880  # also fills the cache
+    one_day = [sale('JP Nagar', 'BEN', 'Kochi Kurry Klub', '2026-09-20', '100', 'zomato', 'KKK1', 'Item', 'Appam', 1, 1000, 0,
+                    'Zomato(Kochi Kurry Klub)', 'Kochi Kurry Klub')]
+    assert upload(admin, 'sales', csv_bytes(SALES_HEADERS, one_day), 'one-day.csv').status_code == 200
+    t = admin.get(summary, timeout=30).json()['totals']
+    assert t['net'] == 1500 and t['orders'] == 3  # JP Nagar 20 Sep replaced by one order of 1000; Marathahalli untouched
+    assert upload(admin, 'sales', csv_bytes(SALES_HEADERS, SALES), 'restore.csv').status_code == 200
+    assert admin.get(summary, timeout=30).json()['totals']['net'] == 880
+
+
+def test_menu_reload_never_leaves_it_empty_and_drops_removed_dishes(admin, loaded):
+    assert upload(admin, 'menu', csv_bytes(MENU_HEADERS, MENU[:2]), 'smaller.csv').status_code == 200
+    d = admin.get(f'{API}/rista/menu', timeout=30).json()
+    assert d['total'] == 2 and 'OLD1' not in {r['sku'] for r in d['rows']}
+    assert admin.get(f'{API}/rista/menu/OLD1', timeout=30).status_code == 404
+    assert 'Al Mashawi Shawarma' in admin.get(f'{API}/rista/menu/accounts', timeout=30).json()
+    assert upload(admin, 'menu', csv_bytes(MENU_HEADERS, MENU), 'Catalog.csv').status_code == 200
+    assert admin.get(f'{API}/rista/menu', timeout=30).json()['total'] == 3
+
+
+def test_recipe_link_is_always_current(admin, loaded):
+    """Menu lists are kept in memory, but 'has a recipe' must follow recipes created at any time."""
+    pymongo = pytest.importorskip('pymongo')
+    client = pymongo.MongoClient(os.environ.get('RISTA_TEST_MONGO', 'mongodb://127.0.0.1:27017'), serverSelectionTimeoutMS=2000)
+    try:
+        client.admin.command('ping')
+    except Exception:
+        pytest.skip('no direct database access to the test database')
+    recipes = client[os.environ.get('RISTA_TEST_DB', 'skope_rista_test')].recipes
+
+    def appam():
+        return {r['sku']: r for r in admin.get(f'{API}/rista/menu', timeout=30).json()['rows']}['KKK1']
+    assert appam()['has_recipe'] is False
+    recipes.insert_one({'id': 'rista-test-recipe', 'code': 'KKK1', 'name': 'Appam', 'active': True})
+    try:
+        assert appam()['has_recipe'] is True
+        checks = admin.get(f'{API}/rista/menu/checks', timeout=30).json()
+        assert 'KKK1' not in {r['sku'] for r in checks['without_recipe']}
+    finally:
+        recipes.delete_one({'id': 'rista-test-recipe'})
+    assert appam()['has_recipe'] is False
+
+
 def test_permissions(management, chef, loaded):
     assert management.get(f'{API}/rista/sales/summary', timeout=30).status_code == 200
     assert management.get(f'{API}/rista/menu', timeout=30).status_code == 200
     assert upload(management, 'sales', csv_bytes(SALES_HEADERS, SALES), 'x.csv').status_code == 403
-    for path in ('/rista/sales/summary', '/rista/cancelled', '/rista/menu', '/rista/imports', '/rista/sales/export'):
+    for path in ('/rista/sales/summary', '/rista/cancelled', '/rista/menu', '/rista/menu/export', '/rista/imports', '/rista/sales/export'):
         assert chef.get(f'{API}{path}', timeout=30).status_code == 403, path
     assert requests.get(f'{API}/rista/sales/summary', timeout=30).status_code == 401

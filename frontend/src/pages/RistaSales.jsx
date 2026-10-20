@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, errMsg, inr, fmt } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { DataTable, PageHeader } from '../components/DataTable';
@@ -49,7 +49,7 @@ function Pick({ label, value, onChange, options, testid, allLabel = 'All' }) {
 
 async function download(path, params, fallbackName) {
   try {
-    const r = await api.get(path, { params, responseType: 'blob' });
+    const r = await api.get(path, { params, responseType: 'blob', timeout: 180000 });
     const name = (r.headers['content-disposition'] || '').match(/filename="(.+?)"/)?.[1] || fallbackName;
     const url = URL.createObjectURL(r.data);
     const a = document.createElement('a');
@@ -58,8 +58,27 @@ async function download(path, params, fallbackName) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
   } catch (e) {
-    toast.error(errMsg(e));
+    // A failed download arrives as a file: read the message out of it.
+    let msg = e.code === 'ECONNABORTED' ? 'The download took too long. Try a shorter date range.' : errMsg(e);
+    const body = e.response?.data;
+    if (body instanceof Blob) {
+      try { msg = JSON.parse(await body.text()).detail || msg; } catch { /* keep the general message */ }
+    }
+    toast.error(msg);
   }
+}
+
+function DownloadButton({ path, params, name, label, testid }) {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try { await download(path, params, name); } finally { setBusy(false); }
+  };
+  return (
+    <Button variant="outline" className="h-11" onClick={run} disabled={busy} data-testid={testid}>
+      {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} {busy ? 'Preparing…' : label}
+    </Button>
+  );
 }
 
 const clean = (f) => Object.fromEntries(Object.entries(f).filter(([, v]) => v));
@@ -169,8 +188,8 @@ export default function RistaSales() {
                 <Kpi label="Tax and charges" value={inr(t.taxes + t.aggregator_tax + t.charges)} sub={`aggregator tax ${inr(t.aggregator_tax)}`} testid="rista-kpi-tax" />
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button variant="outline" className="h-11" onClick={() => download('/rista/sales/export', { ...params, format: 'xlsx' }, 'rista-sales.xlsx')} data-testid="rista-download-xlsx"><Download className="mr-2 h-4 w-4" /> Download lines (Excel)</Button>
-                <Button variant="outline" className="h-11" onClick={() => download('/rista/sales/export', { ...params, format: 'csv' }, 'rista-sales.csv')} data-testid="rista-download-csv"><Download className="mr-2 h-4 w-4" /> Download lines (CSV)</Button>
+                <DownloadButton path="/rista/sales/export" params={{ ...params, format: 'xlsx' }} name="rista-sales.xlsx" label="Download lines (Excel)" testid="rista-download-xlsx" />
+                <DownloadButton path="/rista/sales/export" params={{ ...params, format: 'csv' }} name="rista-sales.csv" label="Download lines (CSV)" testid="rista-download-csv" />
               </div>
               <div className="mt-5 rounded-xl border bg-card p-4 sm:p-6" data-testid="rista-daily-chart">
                 <h3 className="mb-4 text-lg font-semibold">Net sales by business day</h3>
@@ -218,7 +237,7 @@ export default function RistaSales() {
                 <Kpi label="By staff" value={fmt(cancelled.totals.by_staff)} sub="cancelled in Rista by a person" testid="rista-kpi-by-staff" />
               </div>
               <div className="mt-3">
-                <Button variant="outline" className="h-11" onClick={() => download('/rista/cancelled/export', { ...clean(cancelledParams), format: 'xlsx' }, 'rista-cancelled.xlsx')} data-testid="rista-cancelled-download"><Download className="mr-2 h-4 w-4" /> Download (Excel)</Button>
+                <DownloadButton path="/rista/cancelled/export" params={{ ...clean(cancelledParams), format: 'xlsx' }} name="rista-cancelled.xlsx" label="Download (Excel)" testid="rista-cancelled-download" />
               </div>
               <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
                 <div className="xl:col-span-1">
@@ -278,12 +297,14 @@ function UploadCard({ kind, title, report, where, onDone }) {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await api.post(`/rista/import/${kind}`, fd);
+      const r = await api.post(`/rista/import/${kind}`, fd, { timeout: 180000 });
       setResult(r.data);
       toast.success(`${title} loaded: ${fmt(r.data.rows)} rows`);
       onDone();
     } catch (e) {
-      toast.error(errMsg(e));
+      if (e.code === 'ECONNABORTED') toast.error('The upload took too long. Check the internet connection and try again, or load a shorter date range.');
+      else if (!e.response) toast.error('Could not reach the website. Check the internet connection and try again.');
+      else toast.error(errMsg(e));
     } finally {
       setBusy(false);
     }
@@ -313,30 +334,46 @@ function UploadCard({ kind, title, report, where, onDone }) {
   );
 }
 
+const MENU_PAGE_SIZE = 50;
+
 function MenuTab({ isAdmin, goUpload }) {
-  const [rows, setRows] = useState(null);
+  const [data, setData] = useState(null); // { rows, total, page, pages }
+  const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [checks, setChecks] = useState(null);
-  const [q, setQ] = useState('');
-  const [account, setAccount] = useState('');
-  const [status, setStatus] = useState('active');
+  const [f, setF] = useState({ q: '', account: '', status: 'active', page: 1 });
+  const [dq, setDq] = useState('');
   const [prices, setPrices] = useState(null);
+  const latest = useRef(0);
 
   useEffect(() => {
     api.get('/rista/menu/accounts').then((r) => setAccounts(r.data)).catch(() => {});
     api.get('/rista/menu/checks').then((r) => setChecks(r.data)).catch(() => {});
   }, []);
+  // Search after a pause in typing, not on every key.
   useEffect(() => {
-    const t = setTimeout(() => {
-      api.get('/rista/menu', { params: clean({ q, account, status }) }).then((r) => setRows(r.data)).catch((e) => { setRows([]); toast.error(errMsg(e)); });
-    }, 250);
+    const t = setTimeout(() => setDq(f.q), 250);
     return () => clearTimeout(t);
-  }, [q, account, status]);
+  }, [f.q]);
+  useEffect(() => {
+    const n = ++latest.current; // an older, slower answer must never replace a newer one
+    setLoading(true);
+    api.get('/rista/menu', { params: clean({ q: dq, account: f.account, status: f.status, page: f.page, page_size: MENU_PAGE_SIZE }) })
+      .then((r) => { if (n === latest.current) setData(r.data); })
+      .catch((e) => {
+        if (n !== latest.current) return;
+        setData((d) => d || { rows: [], total: 0, page: 1, pages: 1 });
+        toast.error(errMsg(e));
+      })
+      .finally(() => { if (n === latest.current) setLoading(false); });
+  }, [dq, f.account, f.status, f.page]);
 
+  const change = (patch) => setF((x) => ({ ...x, page: 1, ...patch }));
+  const goPage = (n) => setF((x) => ({ ...x, page: n }));
   const openPrices = (sku) => api.get(`/rista/menu/${encodeURIComponent(sku)}`).then((r) => setPrices(r.data)).catch((e) => toast.error(errMsg(e)));
   const priceText = (r) => (r.price_min == null ? '' : r.price_min === r.price_max ? inr(r.price_min) : `${inr(r.price_min)} to ${inr(r.price_max)}`);
 
-  if (checks && !checks.menu_loaded && rows && !rows.length && !q && !account) {
+  if (checks && !checks.menu_loaded && data && data.total === 0 && !f.q && !f.account) {
     return (
       <div className="rounded-xl border bg-card p-8 text-center" data-testid="rista-menu-empty">
         <FileSpreadsheet className="mx-auto h-10 w-10 text-muted-foreground" />
@@ -346,6 +383,19 @@ function MenuTab({ isAdmin, goUpload }) {
       </div>
     );
   }
+
+  const from = data && data.total ? (data.page - 1) * MENU_PAGE_SIZE + 1 : 0;
+  const to = data ? Math.min(data.page * MENU_PAGE_SIZE, data.total) : 0;
+  const pager = data && (
+    <div className="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="rista-menu-pager">
+      <span data-testid="rista-menu-page-info">{data.total ? `${fmt(from)} to ${fmt(to)} of ${fmt(data.total)} ${data.total === 1 ? 'dish' : 'dishes'}` : '0 dishes'}</span>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" className="h-11" disabled={loading || data.page <= 1} onClick={() => goPage(data.page - 1)} data-testid="rista-menu-prev">Previous</Button>
+        <span className="tabular" data-testid="rista-menu-page-number">Page {data.page} of {data.pages}</span>
+        <Button variant="outline" className="h-11" disabled={loading || data.page >= data.pages} onClick={() => goPage(data.page + 1)} data-testid="rista-menu-next">Next</Button>
+      </div>
+    </div>
+  );
 
   return (
     <div data-testid="rista-menu">
@@ -365,25 +415,33 @@ function MenuTab({ isAdmin, goUpload }) {
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="space-y-1">
           <Label className="text-xs">Search</Label>
-          <Input className="h-11" placeholder="Dish name, SKU or category" value={q} onChange={(e) => setQ(e.target.value)} data-testid="rista-menu-search" />
+          <Input className="h-11" placeholder="Dish name, SKU or category" value={f.q} onChange={(e) => change({ q: e.target.value })} data-testid="rista-menu-search" />
         </div>
-        <Pick label="Brand account" value={account} onChange={setAccount} testid="rista-menu-account" options={accounts.map((a) => ({ value: a, label: a }))} />
-        <Pick label="Status" value={status} onChange={setStatus} testid="rista-menu-status" allLabel="All dishes"
+        <Pick label="Brand account" value={f.account} onChange={(v) => change({ account: v })} testid="rista-menu-account" options={accounts.map((a) => ({ value: a, label: a }))} />
+        <Pick label="Status" value={f.status} onChange={(v) => change({ status: v })} testid="rista-menu-status" allLabel="All dishes"
           options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
       </div>
-      {rows === null && <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground" data-testid="rista-menu-loading"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading menu…</div>}
-      {rows !== null && <DataTable testid="rista-menu-table" exportName="rista-menu.csv" searchKeys={['sku', 'name']}
-        columns={[
-          { key: 'name', label: 'Dish', render: (r) => <span>{r.name}{r.variant ? <span className="text-muted-foreground"> · {r.variant}</span> : ''}</span> },
-          { key: 'sku', label: 'SKU' },
-          { key: 'account', label: 'Brand account' },
-          { key: 'category', label: 'Category' },
-          { key: 'status', label: 'Status' },
-          { key: 'price', label: 'Price', numeric: true, render: priceText },
-          { key: 'sold_qty', label: 'Sold', numeric: true, render: (r) => fmt(r.sold_qty) },
-          { key: 'has_recipe', label: 'Recipe here', render: (r) => (r.has_recipe ? 'Yes' : 'No') },
-          { key: 'actions', label: '', render: (r) => <Button size="sm" variant="outline" onClick={() => openPrices(r.sku)} data-testid={`rista-prices-${r.sku}`}>Prices</Button> },
-        ]} rows={rows} />}
+      <div className="mb-3">
+        <DownloadButton path="/rista/menu/export" params={clean({ q: dq, account: f.account, status: f.status, format: 'xlsx' })}
+          name="rista-menu.xlsx" label="Download menu (Excel)" testid="rista-menu-download" />
+      </div>
+      {data === null && <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground" data-testid="rista-menu-loading"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Loading menu…</div>}
+      {data !== null && (
+        <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+          <DataTable testid="rista-menu-table" search={false} footer={pager}
+            columns={[
+              { key: 'name', label: 'Dish', render: (r) => <span>{r.name}{r.variant ? <span className="text-muted-foreground"> · {r.variant}</span> : ''}</span> },
+              { key: 'sku', label: 'SKU' },
+              { key: 'account', label: 'Brand account' },
+              { key: 'category', label: 'Category' },
+              { key: 'status', label: 'Status' },
+              { key: 'price', label: 'Price', numeric: true, render: priceText },
+              { key: 'sold_qty', label: 'Sold', numeric: true, render: (r) => fmt(r.sold_qty) },
+              { key: 'has_recipe', label: 'Recipe here', render: (r) => (r.has_recipe ? 'Yes' : 'No') },
+              { key: 'actions', label: '', render: (r) => <Button size="sm" variant="outline" onClick={() => openPrices(r.sku)} data-testid={`rista-prices-${r.sku}`}>Prices</Button> },
+            ]} rows={data.rows} />
+        </div>
+      )}
 
       <Dialog open={!!prices} onOpenChange={(o) => !o && setPrices(null)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto" data-testid="rista-prices-dialog">

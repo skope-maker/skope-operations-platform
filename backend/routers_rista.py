@@ -13,6 +13,8 @@ same or an overlapping file twice never double counts.
 import asyncio
 import csv
 import io
+import math
+import os
 import re
 from io import BytesIO
 
@@ -21,6 +23,7 @@ from fastapi.responses import Response
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.cell import WriteOnlyCell
+from pymongo import ReplaceOne
 
 from db import db, uid, now_iso, clean_list, audit
 from auth import require_roles
@@ -29,6 +32,26 @@ router = APIRouter(prefix='/rista', tags=['rista'])
 
 VIEW_ROLES = ('admin', 'management')
 MAX_BYTES = 40 * 1024 * 1024
+# A download holds every matching line in memory while the file is built; the hosting plan has little memory.
+EXPORT_MAX_LINES = int(os.environ.get('RISTA_EXPORT_MAX_LINES', '100000'))
+
+# Reports only change when an admin loads a file, so answers are kept in memory until then (the app runs as one
+# process). Anything that can change outside a file load, such as recipes, is always read fresh.
+_cache = {}
+
+
+def _invalidate():
+    _cache.clear()
+
+
+async def _cached(key, compute):
+    if key in _cache:
+        return _cache[key]
+    value = await compute()
+    if len(_cache) >= 300:
+        _cache.clear()
+    _cache[key] = value
+    return value
 
 # (field we store, Rista column, kind) kind: s = text, n = number
 SALES_COLUMNS = [
@@ -97,7 +120,7 @@ def _text(v):
         return ''
     if isinstance(v, float) and v.is_integer():
         v = int(v)
-    return str(v).replace('⁠', '').strip()
+    return str(v).replace('\u2060', '').strip()
 
 
 def _number(v):
@@ -138,7 +161,7 @@ def read_table(filename: str, content: bytes):
         text = content.decode('utf-8-sig')
     except UnicodeDecodeError:
         text = content.decode('latin-1')
-    text = text.replace('⁠', '')
+    text = text.replace('\u2060', '')
     reader = csv.DictReader(io.StringIO(text))
     headers = [h.strip() for h in (reader.fieldnames or [])]
     reader.fieldnames = headers
@@ -185,17 +208,28 @@ async def _log_import(user, kind, filename, summary):
     return doc
 
 
-async def _replace_by_branch_day(coll, docs):
-    """Replace the stored rows for every (branch, business day) present in docs."""
+async def _replace_by_branch_day(coll, docs, batch):
+    """Store docs, then remove the older rows of the same branches and days.
+
+    The new rows go in first, so if loading fails part way the new rows are removed again and what was loaded
+    before stays untouched. Loading the same file again always repairs a failure that happened later."""
     days_by_branch = {}
     for d in docs:
         days_by_branch.setdefault(d['branch_code'], set()).add(d['business_date'])
+    try:
+        for i in range(0, len(docs), 2000):
+            await db[coll].insert_many([dict(d) for d in docs[i:i + 2000]])
+    except Exception:
+        await db[coll].delete_many({'import_id': batch})
+        raise HTTPException(500, 'Loading the file failed part way. Nothing was changed. Please try again.')
     replaced = 0
-    for branch, days in days_by_branch.items():
-        res = await db[coll].delete_many({'branch_code': branch, 'business_date': {'$in': sorted(days)}})
-        replaced += res.deleted_count
-    for i in range(0, len(docs), 2000):
-        await db[coll].insert_many([dict(d) for d in docs[i:i + 2000]])
+    try:
+        for branch, days in days_by_branch.items():
+            res = await db[coll].delete_many({'branch_code': branch, 'business_date': {'$in': sorted(days)},
+                                              'import_id': {'$ne': batch}})
+            replaced += res.deleted_count
+    except Exception:
+        raise HTTPException(500, 'Loading the file failed while replacing older rows. Please load the same file again.')
     return replaced
 
 
@@ -224,7 +258,8 @@ async def import_sales(file: UploadFile = File(...), user=Depends(require_roles(
         docs.append(d)
     if not docs:
         raise HTTPException(400, 'No usable sales lines found (each line needs a branch code, business date and invoice number).')
-    replaced = await _replace_by_branch_day('rista_sales_lines', docs)
+    replaced = await _replace_by_branch_day('rista_sales_lines', docs, batch)
+    _invalidate()
     orders = len({(d['branch_code'], d['invoice_number']) for d in docs})
     summary = {'rows': len(docs), 'skipped': skipped, 'replaced': replaced, 'orders': orders,
                'net': round(sum(d['net'] for d in docs), 2), **_range(docs)}
@@ -248,7 +283,8 @@ async def import_cancelled(file: UploadFile = File(...), user=Depends(require_ro
         docs.append(d)
     if not docs:
         raise HTTPException(400, 'No usable cancelled orders found.')
-    replaced = await _replace_by_branch_day('rista_cancelled', docs)
+    replaced = await _replace_by_branch_day('rista_cancelled', docs, batch)
+    _invalidate()
     summary = {'rows': len(docs), 'skipped': skipped, 'replaced': replaced,
                'total': round(sum(d['total'] for d in docs), 2), **_range(docs)}
     return await _log_import(user, 'cancelled', file.filename, summary)
@@ -280,8 +316,13 @@ async def import_menu(file: UploadFile = File(...), user=Depends(require_roles('
         docs[d['sku']] = d
     if not docs:
         raise HTTPException(400, 'No dishes found in the menu file.')
-    await db.rista_menu.delete_many({})
-    await db.rista_menu.insert_many([dict(d) for d in docs.values()])
+    # Replace dish by dish, then drop dishes that are no longer in the file: the menu is never empty half way.
+    try:
+        await db.rista_menu.bulk_write([ReplaceOne({'sku': d['sku']}, dict(d), upsert=True) for d in docs.values()], ordered=False)
+        await db.rista_menu.delete_many({'import_id': {'$ne': batch}})
+    except Exception:
+        raise HTTPException(500, 'Loading the menu failed part way. Please load the same file again.')
+    _invalidate()
     summary = {'rows': len(docs), 'active': sum(1 for d in docs.values() if d['active']),
                'accounts': len({d['account'] for d in docs.values()}), 'price_columns': len(price_cols)}
     return await _log_import(user, 'menu', file.filename, summary)
@@ -344,6 +385,10 @@ async def _group(match, key, extra_sort=None, limit=None):
 
 @router.get('/sales/filters')
 async def sales_filters(user=Depends(require_roles(*VIEW_ROLES))):
+    return await _cached(('filters',), _filters_data)
+
+
+async def _filters_data():
     coll = db.rista_sales_lines
     branches = await coll.aggregate([{'$group': {'_id': {'code': '$branch_code', 'name': '$branch_name'}}}]).to_list(100)
     first = await coll.find({}, {'business_date': 1}).sort('business_date', 1).limit(1).to_list(1)
@@ -364,6 +409,11 @@ async def sales_summary(date_from: str = '', date_to: str = '', branch: str = ''
                         brand_field: str = 'business_brand', channel: str = '', source: str = '',
                         user=Depends(require_roles(*VIEW_ROLES))):
     match = _filters(date_from, date_to, branch, brand, brand_field, channel, source)
+    key = ('summary', date_from, date_to, branch, brand, brand_field, channel, source)
+    return await _cached(key, lambda: _summary(match, brand_field))
+
+
+async def _summary(match, brand_field):
     totals = await db.rista_sales_lines.aggregate([
         {'$match': match},
         {'$group': {'_id': None, 'lines': {'$sum': 1}, 'gross': {'$sum': '$gross'}, 'discounts': {'$sum': '$discounts'},
@@ -434,7 +484,7 @@ def _build_file(rows, headers, fmt):
         w.writerow([h for _, h in headers])
         for r in rows:
             w.writerow([r.get(k, '') for k, _ in headers])
-        return ('﻿' + buf.getvalue()).encode('utf-8'), 'text/csv'
+        return ('\ufeff' + buf.getvalue()).encode('utf-8'), 'text/csv'
     else:
         wb = Workbook(write_only=True)
         ws = wb.create_sheet('Data')
@@ -470,7 +520,11 @@ async def export_sales(format: str = 'xlsx', date_from: str = '', date_to: str =
                        user=Depends(require_roles(*VIEW_ROLES))):
     _check_format(format)
     match = _filters(date_from, date_to, branch, brand, brand_field, channel, source)
-    rows = await db.rista_sales_lines.find(match, {'_id': 0}).sort([('business_date', 1), ('invoice_date', 1)]).to_list(200000)
+    count = await db.rista_sales_lines.count_documents(match)
+    if count > EXPORT_MAX_LINES:
+        raise HTTPException(400, f'This download would have {count:,} lines, more than the {EXPORT_MAX_LINES:,} allowed at once. '
+                                 'Choose a shorter date range, a branch or a brand.')
+    rows = await db.rista_sales_lines.find(match, {'_id': 0}).sort([('business_date', 1), ('invoice_date', 1)]).to_list(EXPORT_MAX_LINES)
     await audit(user, 'Downloaded Rista sales', f'{len(rows)} lines {date_from}..{date_to} {brand}')
     return await _file_response(rows, EXPORT_HEADERS, f"rista-sales-{date_from or 'all'}-{date_to or 'all'}", format)
 
@@ -481,6 +535,11 @@ async def export_sales(format: str = 'xlsx', date_from: str = '', date_to: str =
 async def list_cancelled(date_from: str = '', date_to: str = '', branch: str = '', brand: str = '',
                          channel: str = '', source: str = '', user=Depends(require_roles(*VIEW_ROLES))):
     match = _filters(date_from, date_to, branch, brand, 'business_brand', channel, source)
+    key = ('cancelled', date_from, date_to, branch, brand, channel, source)
+    return await _cached(key, lambda: _cancelled_data(match))
+
+
+async def _cancelled_data(match):
     rows = await db.rista_cancelled.find(match, {'_id': 0, 'import_id': 0}).sort('cancel_date', -1).to_list(20000)
     by_reason = {}
     for r in rows:
@@ -507,8 +566,14 @@ async def export_cancelled(format: str = 'xlsx', date_from: str = '', date_to: s
 
 # ---------------------------------------------------------------- menu
 
-@router.get('/menu')
-async def list_menu(q: str = '', account: str = '', status: str = '', user=Depends(require_roles(*VIEW_ROLES))):
+MENU_EXPORT_HEADERS = [
+    ('sku', 'SKU'), ('name', 'Dish'), ('variant', 'Variant'), ('account', 'Brand Account'), ('category', 'Category'),
+    ('status', 'Status'), ('price_min', 'Lowest Price'), ('price_max', 'Highest Price'), ('sold_qty', 'Sold Qty'),
+    ('sold_net', 'Sold Net Amount'), ('has_recipe_text', 'Recipe In This App'),
+]
+
+
+def _menu_match(q, account, status):
     match = {}
     if q.strip():
         rx = {'$regex': re.escape(q.strip()), '$options': 'i'}
@@ -519,44 +584,81 @@ async def list_menu(q: str = '', account: str = '', status: str = '', user=Depen
         match['active'] = True
     elif status == 'inactive':
         match['active'] = False
-    # Only what the list shows; full details and prices come from /menu/{sku}.
-    fields = {'_id': 0, 'sku': 1, 'name': 1, 'variant': 1, 'account': 1, 'category': 1, 'status': 1, 'active': 1,
-              'price_min': 1, 'price_max': 1}
-    rows = await db.rista_menu.find(match, fields).sort([('account', 1), ('name', 1)]).to_list(5000)
-    sold = {d['_id']: d for d in await db.rista_sales_lines.aggregate([
-        {'$match': {'line_type': 'Item'}},
-        {'$group': {'_id': '$sku', 'qty': {'$sum': '$qty'}, 'net': {'$sum': '$net'}}}]).to_list(10000)}
-    recipe_codes = {r['code'] for r in await db.recipes.find({}, {'code': 1}).to_list(10000) if r.get('code')}
-    for r in rows:
+    return match
+
+
+async def _sold_by_sku():
+    async def compute():
+        return await db.rista_sales_lines.aggregate([
+            {'$match': {'line_type': 'Item'}},
+            {'$group': {'_id': '$sku', 'item_name': {'$last': '$item_name'}, 'account_name': {'$last': '$account_name'},
+                        'lines': {'$sum': 1}, 'qty': {'$sum': '$qty'}, 'net': {'$sum': '$net'}}},
+            {'$sort': {'net': -1}}]).to_list(10000)
+    return await _cached(('sold',), compute)
+
+
+async def _recipe_codes():
+    return {r['code'] for r in await db.recipes.find({}, {'code': 1}).to_list(10000) if r.get('code')}
+
+
+async def _menu_rows(q, account, status):
+    """Every matching dish with how much of it sold and whether a recipe here is linked to it."""
+    async def compute():
+        # Only what the list shows; full details and prices come from /menu/{sku}.
+        fields = {'_id': 0, 'sku': 1, 'name': 1, 'variant': 1, 'account': 1, 'category': 1, 'status': 1, 'active': 1,
+                  'price_min': 1, 'price_max': 1}
+        return await db.rista_menu.find(_menu_match(q, account, status), fields).sort([('account', 1), ('name', 1)]).to_list(5000)
+    base = await _cached(('menu', q.strip().lower(), account, status), compute)
+    sold = {s['_id']: s for s in await _sold_by_sku()}
+    codes = await _recipe_codes()  # read fresh: recipes change outside Rista file loads
+    out = []
+    for r in base:
         s = sold.get(r['sku'])
-        r['sold_qty'] = s['qty'] if s else 0
-        r['sold_net'] = round(s['net'], 2) if s else 0
-        r['has_recipe'] = r['sku'] in recipe_codes
-    return rows
+        out.append({**r, 'sold_qty': s['qty'] if s else 0, 'sold_net': round(s['net'], 2) if s else 0,
+                    'has_recipe': r['sku'] in codes})
+    return out
+
+
+@router.get('/menu')
+async def list_menu(q: str = '', account: str = '', status: str = '', page: int = 1, page_size: int = 50,
+                    user=Depends(require_roles(*VIEW_ROLES))):
+    rows = await _menu_rows(q, account, status)
+    page_size = min(max(page_size, 1), 200)
+    pages = max(1, math.ceil(len(rows) / page_size))
+    page = min(max(page, 1), pages)
+    return {'rows': rows[(page - 1) * page_size:page * page_size], 'total': len(rows), 'page': page,
+            'pages': pages, 'page_size': page_size}
+
+
+@router.get('/menu/export')
+async def export_menu(format: str = 'xlsx', q: str = '', account: str = '', status: str = '',
+                      user=Depends(require_roles(*VIEW_ROLES))):
+    _check_format(format)
+    rows = [{**r, 'has_recipe_text': 'Yes' if r['has_recipe'] else 'No'} for r in await _menu_rows(q, account, status)]
+    return await _file_response(rows, MENU_EXPORT_HEADERS, 'rista-menu', format)
 
 
 @router.get('/menu/accounts')
 async def menu_accounts(user=Depends(require_roles(*VIEW_ROLES))):
-    return sorted(x for x in await db.rista_menu.distinct('account') if x)
+    async def compute():
+        return sorted(x for x in await db.rista_menu.distinct('account') if x)
+    return await _cached(('accounts',), compute)
 
 
 @router.get('/menu/checks')
 async def menu_checks(user=Depends(require_roles(*VIEW_ROLES))):
     """Dishes sold that are missing from the menu file, and dishes sold that have no recipe in our app."""
-    sold = await db.rista_sales_lines.aggregate([
-        {'$match': {'line_type': 'Item'}},
-        {'$group': {'_id': '$sku', 'item_name': {'$last': '$item_name'}, 'account_name': {'$last': '$account_name'},
-                    'lines': {'$sum': 1}, 'qty': {'$sum': '$qty'}, 'net': {'$sum': '$net'}}},
-        {'$sort': {'net': -1}}]).to_list(10000)
-    menu_skus = set(await db.rista_menu.distinct('sku'))
-    recipe_codes = {r['code'] for r in await db.recipes.find({}, {'code': 1}).to_list(10000) if r.get('code')}
+    async def menu_skus():
+        return set(await db.rista_menu.distinct('sku'))
+    skus = await _cached(('menu_skus',), menu_skus)
+    codes = await _recipe_codes()
     rows = [{'sku': s['_id'], 'item_name': s['item_name'], 'account_name': s['account_name'], 'lines': s['lines'],
-             'qty': s['qty'], 'net': round(s['net'], 2)} for s in sold]
+             'qty': s['qty'], 'net': round(s['net'], 2)} for s in await _sold_by_sku()]
     return {
-        'menu_loaded': bool(menu_skus),
+        'menu_loaded': bool(skus),
         'sold_dishes': len(rows),
-        'not_in_menu': [r for r in rows if r['sku'] not in menu_skus] if menu_skus else [],
-        'without_recipe': [r for r in rows if r['sku'] not in recipe_codes],
+        'not_in_menu': [r for r in rows if r['sku'] not in skus] if skus else [],
+        'without_recipe': [r for r in rows if r['sku'] not in codes],
     }
 
 

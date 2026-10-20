@@ -59,6 +59,8 @@ export default function Inventory() {
     if (ledgerFilter.date_to) p.set('date_to', ledgerFilter.date_to);
     api.get(`/inventory/ledger?${p}`).then((r) => setLedger(r.data)).catch((e) => toast.error(errMsg(e)));
   };
+  // Reload whenever the filter changes (loadLedger reads the current filter).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadLedger(); }, [ledgerFilter]);
 
   const loadBatches = (locId) => {
@@ -73,7 +75,8 @@ export default function Inventory() {
       .catch((e) => toast.error(errMsg(e)))
       .finally(() => setReorderLoading(false));
   };
-  useEffect(() => { loadReorder(); /* eslint-disable-next-line */ }, [reorderLoc]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadReorder(); }, [reorderLoc]);
 
   const submitTransfer = async () => {
     try {

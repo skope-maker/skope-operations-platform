@@ -27,7 +27,7 @@ const ROLE_LABELS = {
 };
 
 export default function Admin() {
-  const { settings, setSettings } = useAuth();
+  const { setSettings } = useAuth();
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [userDialog, setUserDialog] = useState(false);

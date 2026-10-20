@@ -4,6 +4,45 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: faster and more robust Rista pages, and lint clean-up
+
+**Speed.**
+- `backend/routers_rista.py`: report answers (summary, filters, cancelled orders, menu, menu accounts and checks) are kept in
+  memory until an admin loads a file, then dropped. The app runs as one process (see `Dockerfile`), so this is safe. Whether a
+  dish has a recipe here is always read fresh, so a recipe created later shows up straight away. On the real month: summary
+  0.27 s first time and 0.01 s after; menu 0.09 s and 0.01 s.
+- Menu list is paged by the server (`GET /api/rista/menu?page=&page_size=`, 50 dishes by default, up to 200, answers
+  `{rows, total, page, pages, page_size}`); the first page is about 11 KB instead of 330 KB. The Menu tab has Previous and Next,
+  "1 to 50 of 1,465 dishes", and goes back to page 1 when the search or a filter changes. Older, slower answers never replace
+  newer ones.
+- New `GET /api/rista/menu/export` (Excel or CSV) downloads the whole filtered menu, since the table now shows one page.
+- `backend/server.py`: text answers are compressed on the way to the browser (GZip, from 1 KB up).
+- `frontend/src/components/DataTable.jsx`: optional `search` (default on) and `footer`, used by the paged menu table.
+
+**Robustness.**
+- Loading a sales or cancelled file puts the new rows in first and removes the older rows of the same branches and days
+  afterwards. If loading fails part way, the new rows are removed again and the earlier data stays; the admin gets a clear
+  message and can load the same file again. Loading a menu file replaces dish by dish, so the menu is never empty half way
+  and dishes no longer in the file are removed.
+- Downloads of sales lines are limited to 100,000 lines at once (setting `RISTA_EXPORT_MAX_LINES`) because the file is built in
+  memory on a small hosting plan; above that, the message says to choose a shorter range, a branch or a brand.
+- `frontend/src/pages/RistaSales.jsx`: download buttons show "Preparing…" and cannot be pressed twice; a failed download shows
+  the server's message (it arrives inside a file, which used to show nothing useful); uploads and downloads give up after
+  3 minutes with a plain message; "could not reach the website" when the connection fails.
+
+**Lint clean-up (no behaviour change).** Removed an unused variable in `pages/Admin.jsx`, unused imports in `pages/Kitchen.jsx`
+and `pages/Recipes.jsx`, an unused constant in `hooks/use-toast.js`; the two effects in `pages/Inventory.jsx` that
+intentionally ignore a dependency now say so correctly. In `routers_rista.py` two invisible characters in the code became
+visible escape codes (`⁠`, `﻿`).
+
+**Tests.** `backend/tests/test_rista.py` now 17 tests (new: paging, menu download, reports refresh after a new file, menu
+reload never empty and drops removed dishes, recipe link always current; the menu list tests use the new answer shape). Needs a
+test database with no Rista data. `tests/e2e/rista.mjs` 44 checks (adds the pager and the menu download).
+Verified on a fresh local database: backend Rista 17/17; unit 15/15; e2e Rista 44/44 desktop and phone, business flow 91/91,
+admin flows 49/49, item search 54 and 56, roles 0 failing desktop and phone, smoke, data entry, no phone overflow; ESLint 0
+errors and 0 warnings; production build OK. Real data check in a browser: 1,465 dishes in 30 pages, Next and Previous, search
+returns to page 1, download works. Download limit checked with a second backend set to 3 lines.
+
 ## 2026-10-20: requirements document updated with what is already built
 
 `docs/Skope-Next-Phase-Questions-v2.docx` (19 pages) and `docs/open-questions.md` regenerated.

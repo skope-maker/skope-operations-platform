@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, errMsg, inr } from '../lib/api';
-import { DataTable, PageHeader, StatusBadge } from '../components/DataTable';
+import { DataTable, PageHeader } from '../components/DataTable';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';

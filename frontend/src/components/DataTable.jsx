@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Download, Search } from 'lucide-react';
 import { toCSV } from '../lib/api';
 
-export function DataTable({ columns, rows, searchKeys = [], testid, exportName, filters }) {
+export function DataTable({ columns, rows, searchKeys = [], testid, exportName, filters, search = true, footer }) {
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     if (!q.trim()) return rows;
@@ -33,8 +33,8 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
 
   return (
     <div className="rounded-xl border bg-card" data-testid={testid}>
-      <div className="flex flex-wrap items-center gap-3 border-b p-4">
-        <div className="relative min-w-[10rem] flex-1">
+      {(search || filters || exportName) && <div className="flex flex-wrap items-center gap-3 border-b p-4">
+        {search && <div className="relative min-w-[10rem] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
@@ -43,14 +43,14 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
             className="h-11 pl-9"
             data-testid={`${testid}-search`}
           />
-        </div>
+        </div>}
         {filters}
         {exportName && (
           <Button variant="outline" className="h-11" onClick={() => toCSV(filtered, exportName)} data-testid={`${testid}-export-btn`}>
             <Download className="mr-2 h-4 w-4" /> CSV
           </Button>
         )}
-      </div>
+      </div>}
       <div className="relative overflow-hidden rounded-b-xl">
       <div ref={scrollRef} className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -85,6 +85,7 @@ export function DataTable({ columns, rows, searchKeys = [], testid, exportName, 
       </div>
       {moreRight && <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent" />}
       </div>
+      {footer && <div className="border-t p-3 sm:p-4">{footer}</div>}
     </div>
   );
 }

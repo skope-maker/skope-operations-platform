@@ -145,6 +145,16 @@ await as('admin', 'menu and prices', async (page) => {
   await page.fill('[data-testid="rista-menu-search"]', 'E2E-APPAM');
   check(await waitText(page, 'rista-menu-table', 'E2E Appam'), 'Menu search by SKU finds the dish');
   check((await text(page, 'rista-menu-table')).includes('₹99 to ₹120'), 'Menu shows the price range across channels');
+  check(await waitText(page, 'rista-menu-page-info', '1 to 1 of 1 dish'), 'Menu pager says "1 to 1 of 1 dish"');
+  check((await page.locator('[data-testid="rista-menu-prev"]').isDisabled()) && (await page.locator('[data-testid="rista-menu-next"]').isDisabled()), 'Previous and Next are off when everything fits on one page');
+  await page.fill('[data-testid="rista-menu-search"]', '');
+  check(await waitText(page, 'rista-menu-page-info', '1 to 2 of 2 dishes'), 'Clearing the search shows both dishes');
+  const [menuDl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.click('[data-testid="rista-menu-download"]')]);
+  const menuFile = path.resolve(OUT, 'e2e-rista-menu-download.xlsx');
+  await menuDl.saveAs(menuFile);
+  check(menuDl.suggestedFilename().endsWith('.xlsx') && fs.statSync(menuFile).size > 1000, `Menu download gives ${menuDl.suggestedFilename()}`);
+  await page.fill('[data-testid="rista-menu-search"]', 'E2E-APPAM');
+  await waitText(page, 'rista-menu-page-info', '1 to 1 of 1 dish');
   await page.click('[data-testid="rista-prices-E2E-APPAM"]');
   check(await waitText(page, 'rista-prices-dialog', 'Zomato(E2E Brand)'), 'Prices dialog lists each channel');
   check((await text(page, 'rista-prices-dialog')).includes('Soft and fluffy'), 'Prices dialog shows the description');

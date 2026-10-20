@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 import logging
 
 from db import client
@@ -50,6 +51,8 @@ app.include_router(admin_router, prefix=API)
 app.include_router(files_router, prefix=API)
 app.include_router(rista_router, prefix=API)
 
+# Text answers (the long Rista lists) shrink to a fraction of their size on the way to the browser.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=False,
