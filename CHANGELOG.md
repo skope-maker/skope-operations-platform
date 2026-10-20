@@ -4,6 +4,16 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: requirements and questions for the next phase
+
+`docs/open-questions.md` rewritten from the team's updated list of seven requests (live orders, sales reports, catalog management,
+catalog sync, production vs sales, roles; item search already done). It now holds 59 plain-language questions, each saying **how to
+answer** (yes/no, pick one, number, list, fill the table, send a file) and **whether it is needed before work starts**. It adds:
+a glossary (client, brand, outlet, kitchen, channel, menu item vs raw item), a client/brand/outlet mapping table to fill, today's
+permissions for all six roles as a table to correct (taken from the server's actual role checks, plus rows for the new features and
+columns for brand owner and store staff), questions on what data each person may see, a checklist of files needed, and what can be
+built before DotPe's API is available. No code changed.
+
 ## 2026-10-20: one reusable item search everywhere, open questions for the next phase
 
 Request from the team (item 1 of 8): wherever users pick an item, use the same search box, built once and reused. Before this,
