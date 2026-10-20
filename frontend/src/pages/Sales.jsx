@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload } from 'lucide-react';
 import { BulkUploadDialog } from '../components/BulkUpload';
+import { OptionPicker } from '../components/SearchSelect';
 
 const emptyLine = () => ({ recipe_id: '', qty_sold: 0, cancelled: 0, complimentary: 0 });
 
@@ -131,7 +132,7 @@ export default function Sales() {
             </div>
             <div className="space-y-2">
               <Label>Brand</Label>
-              <Select value={form.brand_id} onValueChange={(v) => setForm({ ...form, brand_id: v })}>
+              <Select value={form.brand_id} onValueChange={(v) => setForm({ ...form, brand_id: v, items: form.items.map((l) => (!l.recipe_id || recipes.find((r) => r.id === l.recipe_id)?.brand_id === v ? l : { ...l, recipe_id: '' })) })}>
                 <SelectTrigger className="h-12" data-testid="sale-brand"><SelectValue placeholder="Select brand" /></SelectTrigger>
                 <SelectContent>{brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
               </Select>
@@ -150,10 +151,10 @@ export default function Sales() {
               <div key={i} className="grid grid-cols-12 items-end gap-2 rounded-lg border p-3">
                 <div className="col-span-12 sm:col-span-5 space-y-1">
                   <Label className="text-xs">Product (Recipe)</Label>
-                  <Select value={l.recipe_id} onValueChange={(v) => setLine(i, { recipe_id: v })}>
-                    <SelectTrigger className="h-11" data-testid={`sale-line-recipe-${i}`}><SelectValue placeholder="Select recipe" /></SelectTrigger>
-                    <SelectContent>{brandRecipes.map((r) => <SelectItem key={r.id} value={r.id}>{r.name} ({inr(r.selling_price)})</SelectItem>)}</SelectContent>
-                  </Select>
+                  <OptionPicker options={brandRecipes} value={l.recipe_id} onSelect={(r) => setLine(i, { recipe_id: r?.id || '' })}
+                    testid={`sale-line-recipe-${i}`} noun="dish" placeholder="Search dish by name or code"
+                    emptyText={(q) => (form.brand_id ? `No dishes of this brand match “${q}”.` : `No dishes match “${q}”.`)}
+                    describe={(r) => ({ title: r.name, meta: r.code, side: inr(r.selling_price) })} />
                 </div>
                 <div className="col-span-4 sm:col-span-2 space-y-1">
                   <Label className="text-xs">Sold</Label>

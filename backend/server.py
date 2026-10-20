@@ -22,6 +22,7 @@ from routers_reports import router as reports_router
 from routers_bulk import router as bulk_router
 from routers_admin import router as admin_router
 from routers_files import router as files_router
+from routers_rista import router as rista_router, ensure_indexes as rista_indexes
 from storage import init_storage
 from seed import seed
 
@@ -47,6 +48,7 @@ app.include_router(reports_router, prefix=API)
 app.include_router(bulk_router, prefix=API)
 app.include_router(admin_router, prefix=API)
 app.include_router(files_router, prefix=API)
+app.include_router(rista_router, prefix=API)
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,6 +66,10 @@ logger = logging.getLogger(__name__)
 async def startup():
     await seed()
     logger.info('Seed complete')
+    try:
+        await rista_indexes()
+    except Exception as e:
+        logger.error(f'Rista index setup failed: {e}')
     try:
         await init_storage()
         logger.info('Object storage initialized')

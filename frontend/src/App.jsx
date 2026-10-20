@@ -14,6 +14,7 @@ import RnD from './pages/RnD';
 import Wastage from './pages/Wastage';
 import Masters from './pages/Masters';
 import Reports from './pages/Reports';
+import RistaSales from './pages/RistaSales';
 import Admin from './pages/Admin';
 
 function Protected({ children }) {
@@ -48,6 +49,7 @@ function App() {
           <Route path="/wastage" element={<Protected><Wastage /></Protected>} />
           <Route path="/masters" element={<Protected><Masters /></Protected>} />
           <Route path="/reports" element={<Protected><Reports /></Protected>} />
+          <Route path="/rista" element={<Protected><RistaSales /></Protected>} />
           <Route path="/admin" element={<Protected><Admin /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

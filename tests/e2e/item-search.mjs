@@ -191,6 +191,32 @@ await as('management', 'report item filter', async (page) => {
 });
 
 // 10. Results stay on screen at phone width
+// Dishes on a sales entry and sub-recipes on a production batch use the same search box over their own lists.
+await as('chef', 'sales dish search', async (page) => {
+  await goto(page, '/sales');
+  await page.click('[data-testid="new-sale-btn"]');
+  await pick(page, 'sale-brand', 'Test Brand');
+  const opt = await searchFor(page, 'sale-line-recipe-0', 'butter', 'RCP-BC');
+  check(!!opt, 'Sales: typing "butter" finds the Butter Chicken dish (RCP-BC)');
+  check(opt && (await opt.textContent()).includes('380'), 'Sales: the result shows the selling price');
+  await opt.click();
+  check((await page.textContent('[data-testid="sale-line-recipe-0-selected"]')).includes('Butter Chicken'), 'Sales: the chosen dish sticks');
+  await page.click('[data-testid="sale-line-recipe-0-change"]');
+  check(!(await searchFor(page, 'sale-line-recipe-0', 'zzzz', 'RCP-BC')) && (await page.locator('[data-testid="sale-line-recipe-0-no-results"]').count()) === 1, 'Sales: a search with no match says so');
+});
+
+await as('chef', 'production sub-recipe search', async (page) => {
+  await goto(page, '/kitchen');
+  await page.click('[data-testid="tab-k-production"]');
+  const opt = await searchFor(page, 'prod-subrecipe', 'gravy', 'SR-GRAVY');
+  check(!!opt, 'Production: typing "gravy" finds the Gravy Base sub-recipe (SR-GRAVY)');
+  await opt.click();
+  check((await page.textContent('[data-testid="prod-subrecipe-selected"]')).includes('Gravy Base'), 'Production: the chosen sub-recipe sticks');
+  check((await page.textContent('[data-testid="prod-unit"]')).includes('KG'), 'Production: choosing it sets the yield unit (KG)');
+  await page.click('[data-testid="prod-subrecipe-change"]');
+  check(!!(await searchFor(page, 'prod-subrecipe', 'sr-gra', 'SR-GRAVY')), 'Production: the sub-recipe can also be found by its code');
+});
+
 if (VIEW.width < 800) {
   await as('chef', 'phone layout of the results', async (page) => {
     await goto(page, '/wastage');

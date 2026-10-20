@@ -15,6 +15,8 @@ export const ROUTE_ROLES = {
   '/wastage': ['admin', 'chef', 'store_manager', 'management'],
   '/masters': ['admin'],
   '/reports': ['admin', 'procurement_manager', 'store_manager', 'management'],
+  // Rista sales, cancellations and menu. Matches VIEW_ROLES in backend/routers_rista.py (uploading is admin only).
+  '/rista': ['admin', 'management'],
   '/admin': ['admin'],
 };
 

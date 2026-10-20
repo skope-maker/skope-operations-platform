@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 import { ItemPicker } from '../components/ItemPicker';
+import { OptionPicker } from '../components/SearchSelect';
 
 const ISSUE_TYPES = [
   { value: 'base_kitchen', label: 'Base Kitchen (sub-recipes / prep)' },
@@ -282,10 +283,10 @@ export default function Kitchen() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Sub-Recipe</Label>
-                <Select value={prod.sub_recipe_id} onValueChange={(v) => { const s = subRecipes.find((x) => x.id === v); setProd({ ...prod, sub_recipe_id: v, unit: s?.yield_unit || 'KG', brand_id: s?.brand_id || '' }); }}>
-                  <SelectTrigger className="h-12" data-testid="prod-subrecipe"><SelectValue placeholder="Select sub-recipe" /></SelectTrigger>
-                  <SelectContent>{subRecipes.map((s) => <SelectItem key={s.id} value={s.id}>{s.name} (yield {s.yield_pct}%)</SelectItem>)}</SelectContent>
-                </Select>
+                <OptionPicker options={subRecipes} value={prod.sub_recipe_id}
+                  onSelect={(s) => setProd({ ...prod, sub_recipe_id: s?.id || '', unit: s?.yield_unit || 'KG', brand_id: s?.brand_id || '' })}
+                  testid="prod-subrecipe" noun="sub-recipe" placeholder="Search sub-recipe by name or code"
+                  describe={(s) => ({ title: s.name, meta: s.code, side: `yield ${s.yield_pct}%` })} />
               </div>
               <div className="space-y-2">
                 <Label>Kitchen</Label>

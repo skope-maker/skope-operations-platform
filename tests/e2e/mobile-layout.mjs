@@ -7,7 +7,7 @@ const W = Number(process.argv[4] || 375);
 const H = Number(process.argv[5] || 812);
 fs.mkdirSync(OUT, { recursive: true });
 
-const ROUTES = ['/', '/sales', '/procurement', '/inventory', '/kitchen', '/recipes', '/rd', '/wastage', '/masters', '/reports', '/admin'];
+const ROUTES = ['/', '/sales', '/procurement', '/inventory', '/kitchen', '/recipes', '/rd', '/wastage', '/masters', '/reports', '/rista', '/admin'];
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });

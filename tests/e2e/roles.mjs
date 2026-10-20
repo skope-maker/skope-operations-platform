@@ -16,6 +16,7 @@ const SECTIONS = [
   ['wastage', '/wastage', ['admin', 'chef', 'store_manager', 'management']],
   ['masters', '/masters', ['admin']],
   ['reports', '/reports', ['admin', 'procurement_manager', 'store_manager', 'management']],
+  ['rista-sales', '/rista', ['admin', 'management']],
   ['administration', '/admin', ['admin']],
 ];
 const USERS = {

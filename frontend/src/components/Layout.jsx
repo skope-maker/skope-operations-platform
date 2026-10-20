@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ROUTE_ROLES } from '../lib/permissions';
 import {
   LayoutDashboard, ShoppingCart, ShoppingBag, Boxes, ChefHat, BookOpen,
-  FlaskConical, Trash2, Database, BarChart3, Settings, LogOut, Menu, X,
+  FlaskConical, Trash2, Database, BarChart3, Settings, LogOut, Menu, X, Store,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -18,6 +18,7 @@ const SECTIONS = [
   { label: 'Wastage', icon: Trash2, path: '/wastage', roles: ROUTE_ROLES['/wastage'] },
   { label: 'Masters', icon: Database, path: '/masters', roles: ROUTE_ROLES['/masters'] },
   { label: 'Reports', icon: BarChart3, path: '/reports', roles: ROUTE_ROLES['/reports'] },
+  { label: 'Rista Sales', icon: Store, path: '/rista', roles: ROUTE_ROLES['/rista'] },
   { label: 'Administration', icon: Settings, path: '/admin', roles: ROUTE_ROLES['/admin'] },
 ];
 

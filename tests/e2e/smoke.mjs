@@ -5,7 +5,7 @@ const BASE = process.argv[2];
 const OUT = process.argv[3];
 fs.mkdirSync(OUT, { recursive: true });
 
-const ROUTES = ['/', '/sales', '/procurement', '/inventory', '/kitchen', '/recipes', '/rd', '/wastage', '/masters', '/reports', '/admin'];
+const ROUTES = ['/', '/sales', '/procurement', '/inventory', '/kitchen', '/recipes', '/rd', '/wastage', '/masters', '/reports', '/rista', '/admin'];
 const results = [];
 let failed = false;
 

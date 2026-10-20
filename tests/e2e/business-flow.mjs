@@ -164,7 +164,7 @@ eq(b['ITM-ONION'], 6000, 'BASE onion received'); eq(b['ITM-OIL'], 500, 'BASE oil
 await as('chef', 'produce 8 KG gravy base', async (page) => {
   await goto(page, '/kitchen');
   await page.click('[data-testid="tab-k-production"]');
-  await pick(page, 'prod-subrecipe', /Gravy Base/);
+  await pickItem(page, 'prod-subrecipe', 'SR-GRAVY', 'Gravy');
   await pick(page, 'prod-kitchen', /Base Kitchen/);
   await page.fill('[data-testid="prod-qty"]', '8');
   await page.click('[data-testid="prod-submit-btn"]');
@@ -196,7 +196,7 @@ await as('chef', 'record and post sales', async (page) => {
   await page.click('[data-testid="new-sale-btn"]');
   await pick(page, 'sale-brand', 'Test Brand');
   await pick(page, 'sale-kitchen', /Normal Kitchen/);
-  await pick(page, 'sale-line-recipe-0', /Butter Chicken/);
+  await pickItem(page, 'sale-line-recipe-0', 'RCP-BC', 'Butter');
   await page.fill('[data-testid="sale-line-qty-0"]', '5');
   await page.click('[data-testid="sale-submit-btn"]');
   check(await toast(page, /sales?.*(saved|draft|created)|saved|draft/i), 'toast: sales saved as draft');

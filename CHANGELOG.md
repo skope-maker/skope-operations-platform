@@ -4,6 +4,57 @@ Every change made to this project in this work, newest first. Work up to 2026-10
 (commit e789ce1) and on GitHub; the 2026-10-18 section is committed locally and needs `git push`.
 File paths are relative to the repository root.
 
+## 2026-10-20: Rista Sales screen (sales, cancelled orders, menu from Rista downloads) and search on two more screens
+
+Built the parts of the next phase that do not wait for the team's answers or the DotPe API. Brand filters for client logins,
+roles, catalog editing and production tracking still wait for answers (see `docs/open-questions.md`).
+
+**Search box on Sales and Production (decision "Item search on more screens").**
+- `frontend/src/components/SearchSelect.jsx` (new): the one search-as-you-type look, now shared. `SearchSelect` is the base;
+  `OptionPicker` searches a list already loaded on the screen (by name or code).
+- `frontend/src/components/ItemPicker.jsx`: rebuilt on `SearchSelect`; same behaviour and test ids.
+- `frontend/src/pages/Sales.jsx`: the dish on each sales line is picked with a search box (name or code, price shown).
+  Changing the brand clears dishes of another brand.
+- `frontend/src/pages/Kitchen.jsx`: the sub-recipe on a production batch is picked with a search box (name or code, yield
+  shown); choosing it still sets the yield unit.
+
+**Rista Sales (requests R3 sales reports and the Rista part of R5, from files until the API is ready).**
+- `backend/routers_rista.py` (new), registered in `backend/server.py` (indexes created at startup):
+  - `POST /api/rista/import/{sales|cancelled|menu}` (admin): loads Rista's "Sales Items By Transaction", "Cancelled
+    Transactions" and "Export Items" downloads, CSV or Excel. A wrong file is refused with the report it expected. Only listed
+    columns are kept: customer names, phone numbers, ids, tax ids, notes and staff names on sales lines are never stored.
+    Sales and cancelled files replace what was stored for the same branch and business day, so reloading or overlapping
+    files never double count. The menu file replaces the stored menu, with every branch and channel price per dish.
+  - `GET /api/rista/sales/summary`: totals (orders, net, gross, discounts, taxes, charges, dishes sold, average order,
+    orders a day) and breakdowns by day, brand, source, channel and branch, plus the top 50 dishes. Filters: dates,
+    branch, brand, channel, source, and `brand_field` = `business_brand` (brand ordered from) or `account_name` (brand that
+    owns the dish), so the report works whichever answer the team gives to Q15.
+  - `GET /api/rista/sales/export` and `/api/rista/cancelled/export`: filtered lines as Excel or CSV.
+  - `GET /api/rista/cancelled`, `/api/rista/menu`, `/api/rista/menu/{sku}`, `/api/rista/menu/checks` (dishes sold but not in
+    the menu file; dishes sold without a recipe in this app, linked when recipe code = Rista SKU), `/api/rista/imports`.
+  - Viewing: admin and management (as the existing Reports screen for management). Loading files: admin only.
+- `frontend/src/pages/RistaSales.jsx` (new) at `/rista`, "Rista Sales" in the menu (`App.jsx`, `Layout.jsx`,
+  `lib/permissions.js`): tabs Sales report (filters, figures, daily chart, tables by source, branch, brand, channel, top dishes,
+  Excel/CSV download), Cancelled orders (figures, reasons, list, download), Menu (search, brand, status, price range, sold
+  quantity, recipe link, prices per branch and channel), Upload files (where to find each report in Rista, load, result,
+  history).
+- Checked with the real files on a local test database: 13,829 lines, 6,520 orders, net Rs 20,35,097.62, 31 days, source
+  shares 44.4 / 39.6 / 8.3 / 7.6 %, 77 cancellations (Rs 27,830.34), 1,507 dishes and 224 price columns, all equal to the
+  analysis of the files. Loading the month takes about 4 seconds; the summary 0.2 seconds; a month's Excel download about
+  5 seconds (built in a worker thread so other users are not held up).
+
+**Tests.**
+- `backend/tests/test_rista.py` (new, 12 tests): import totals, no customer details stored, reload replaces instead of
+  doubling, totals and breakdowns, both brand meanings and filters, Excel export, cancelled orders, menu and checks, Excel
+  uploads, wrong or empty files refused, import history, permissions (management reads, cannot upload; chef refused).
+- `frontend/src/components/SearchSelect.test.jsx` (new, 3 tests).
+- `tests/e2e/rista.mjs` (new, 40 checks desktop and phone); `item-search.mjs` adds the dish and sub-recipe boxes;
+  `business-flow.mjs` picks the sub-recipe and dish by search; `roles.mjs`, `smoke.mjs`, `mobile-layout.mjs` include `/rista`;
+  `tests/e2e/README.md` updated.
+Verified on a fresh local database: backend Rista 12/12; unit 15/15; e2e Rista 40/40 desktop and phone, roles 84 checks
+desktop and phone with 0 failing, smoke passed, business flow 91/91, admin flows 49/49, item search 54/54 desktop and 56/56
+phone, data entry passed, no phone overflow on any screen including `/rista`; production build OK; ESLint 0 errors.
+
 ## 2026-10-20: requirements document v2 updated with the Rista menu and cancellations
 
 Input: two more Rista exports downloaded on 20 October, the full menu ("Export Items", emailed by Rista, 1,507 dishes and

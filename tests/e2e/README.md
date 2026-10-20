@@ -6,13 +6,14 @@ purchase-to-sales business chain and the phone layout.
 
 | Script | What it checks |
 |---|---|
-| `smoke.mjs` | Login/logout, all 11 routes render, sidebar navigation, deep-link reload (22 checks). |
-| `roles.mjs` | For all 6 roles: nav shows exactly that role's sections, every permitted screen loads without errors, every forbidden URL redirects home (78 checks; `phone` arg uses the drawer menu). |
+| `smoke.mjs` | Login/logout, all 12 routes render, sidebar navigation, deep-link reload (22 checks). |
+| `roles.mjs` | For all 6 roles: nav shows exactly that role's sections, every permitted screen loads without errors, every forbidden URL redirects home (84 checks; `phone` arg uses the drawer menu). |
 | `business-flow.mjs` | The whole chain, each step performed by the correct role in the UI, with exact stock assertions after every step (91 checks, see below). |
 | `admin-and-edge-flows.mjs` | User administration (create, log in as the new user, deactivate, delete), receipt rejection and partial approval, intent rejection, recipe creation, bulk upload, every report type, reopening a closed day (49 checks). |
 | `data-entry.mjs` | Create/delete a master record through dialogs, tabs, file upload/download round trip. |
 | `mobile-layout.mjs` | Horizontal overflow, small tap targets and dialog fit on every screen at a given viewport. |
-| `item-search.mjs` | The shared item search box on all 11 places it is used, each by the role that does that job: results while typing, stock at the right location for that step, the choice sticks and sets the unit, history filters find deactivated items while entry screens do not, "Prepared" label, phone width (44 checks desktop, 46 phone). |
+| `item-search.mjs` | The shared search box on all 13 places something is picked (11 item boxes, plus dishes on a sales entry and sub-recipes on a production batch), each by the role that does that job: results while typing, stock at the right location for that step, the choice sticks and sets the unit, history filters find deactivated items while entry screens do not, "Prepared" label, phone width (54 checks desktop, 56 phone). |
+| `rista.mjs` | Rista Sales screen with small made-up Rista files: admin loads sales, cancelled orders and menu; a wrong file is refused; report totals, both brand meanings, branch and date filters; Excel and CSV downloads follow the filters and hold no customer details; cancelled orders; menu search and the prices dialog; management can read but not upload; chef has no access (40 checks desktop and phone). Loading the menu replaces the stored Rista menu, so use the throwaway database. |
 
 ## The business chain (`business-flow.mjs`)
 
@@ -55,6 +56,7 @@ node smoke.mjs         http://localhost:5199 ./out
 node data-entry.mjs    http://localhost:5199 ./out
 node mobile-layout.mjs http://localhost:5199 ./out 375 812
 node item-search.mjs   http://localhost:5199 ./out desktop      # or: phone
+node rista.mjs         http://localhost:5199 ./out desktop      # or: phone
 ```
 
 On PowerShell set the variables first, for example `$env:DB_NAME='skope_e2e'`.
