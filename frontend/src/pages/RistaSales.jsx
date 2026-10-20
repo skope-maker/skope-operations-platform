@@ -19,7 +19,7 @@ const sourceLabel = (s) => SOURCE_LABELS[s] || s;
 const FILES = [
   { kind: 'sales', title: 'Sales', report: 'Sales Items By Transaction', where: 'Reports > Sales > Sales Items > Sales Items By Transaction. Pick the dates and all branches, then Download (up to a month at a time works).' },
   { kind: 'cancelled', title: 'Cancelled orders', report: 'Cancelled Transactions', where: 'Reports > Sales > Sale Transactions > Cancelled Transactions. Same dates and branches as the sales file, then Download.' },
-  { kind: 'menu', title: 'Menu', report: 'Export Items', where: 'Settings > Catalog > Items > menu (⋮) > Export Items. Rista emails the file to the account\'s email address.' },
+  { kind: 'menu', title: 'Menu', report: 'Export Items', where: 'Business Settings > Items > three dots (⋮) > Export Items. Rista emails the file to the account\'s email address.' },
 ];
 
 function Kpi({ label, value, sub, testid }) {

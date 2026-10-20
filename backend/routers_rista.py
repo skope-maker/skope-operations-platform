@@ -3,7 +3,7 @@
 Three Rista exports are understood:
 - sales:     Reports > Sales > Sales Items > "Sales Items By Transaction" (one line per dish, option or add-on)
 - cancelled: Reports > Sales > Sale Transactions > "Cancelled Transactions"
-- menu:      Catalog Items > menu > "Export Items" (emailed by Rista)
+- menu:      Business Settings > Items > three dots (⋮) > "Export Items" (emailed by Rista)
 
 Only the columns listed below are kept. Customer names, phone numbers, ids, tax ids, notes and staff names
 in the sales lines are dropped on import (decision "Customer details" in docs/open-questions.md).
@@ -77,7 +77,7 @@ REQUIRED = {
 REPORT_NAMES = {
     'sales': '"Sales Items By Transaction" (Reports > Sales > Sales Items)',
     'cancelled': '"Cancelled Transactions" (Reports > Sales > Sale Transactions)',
-    'menu': '"Export Items" (Catalog Items menu)',
+    'menu': '"Export Items" (Business Settings > Items > three dots)',
 }
 PRICE_COL = re.compile(r'^Price-(.+?):(.+)$')
 DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
